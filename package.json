@@ -1,0 +1,17 @@
+{
+  "name": "kosh",
+  "private": true,
+  "version": "0.4.0",
+  "description": "Kosh - a wealth navigator that explains itself. BroadBridge hackathon build.",
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm run dev:api & npm run dev:web",
+    "dev:api": "npm run dev --workspace api",
+    "dev:web": "npm run dev --workspace web",
+    "test": "npm test --workspace api",
+    "build": "npm run build --workspace web"
+  }
+}
