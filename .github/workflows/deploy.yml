@@ -26,7 +26,8 @@ env:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # skipped (not failed) until AWS is wired up: set repo variable DEPLOY_ENABLED=true
+    if: ${{ vars.DEPLOY_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     environment: ${{ vars.STAGE || 'demo' }}
     steps:

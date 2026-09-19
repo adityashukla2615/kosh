@@ -96,7 +96,7 @@ One-time setup:
    }
    ```
    Give it permissions for CloudFormation, Lambda, IAM (role creation for the function), DynamoDB, S3, CloudFront and CloudWatch. For a hackathon account, `PowerUserAccess` + `IAMFullAccess` is the pragmatic choice; tighten later.
-3. In the repo: secret `AWS_DEPLOY_ROLE_ARN`; optional variables `AWS_REGION`, `BEDROCK_REGION`, `STAGE`.
+3. In the repo: secret `AWS_DEPLOY_ROLE_ARN`, variable `DEPLOY_ENABLED=true` (the job is skipped without it); optional variables `AWS_REGION`, `BEDROCK_REGION`, `STAGE`.
 
 ### Tearing down
 
