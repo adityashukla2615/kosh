@@ -1,0 +1,7 @@
+# The container and the Space build on Linux; keep LF in the working tree too so
+# shell scripts do not pick up CR and fail with "bad interpreter".
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

@@ -81,12 +81,23 @@ web/            React 18 + Vite + Recharts. Hand-written CSS.
 infra/          AWS SAM template (Lambda, Function URL, DynamoDB, S3, CloudFront, alarm)
 .github/        CI (test, build, template lint) and CD (OIDC -> sam deploy -> s3 sync)
 docs/           architecture, deployment guide, demo script, deck
+deploy/         Hugging Face Space config (the live demo host)
 samples/        a sample bank statement CSV for the import feature
 ```
 
 ## Deploying
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Short version: `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the bucket it prints. Or push to `main` with the GitHub OIDC role set up and let the workflow do it.
+The live demo is a Docker Space on Hugging Face - one container, API and web app on one
+origin: `npm run deploy:hf -- <user>/<space>`.
+
+AWS is the architecture this was designed for and `infra/template.yaml` is real (CI lints it
+on every push): `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the
+bucket it prints, or push to `main` with the GitHub OIDC role set up. We host the demo
+elsewhere only because our AWS account was suspended mid-build. Nothing in the app is tied
+to AWS: the store falls back to memory without `TABLE_NAME`, and the advisor takes Bedrock
+or the Claude API.
+
+Both paths, step by step, in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Things we know are rough
 
@@ -97,7 +108,7 @@ We'd rather say these than have a judge find them:
 - **Insurance premiums are ballparks** by age band, labelled as such.
 - **Retrieval is BM25 over 15 hand-written notes.** It's the right size for the corpus. Swapping in Bedrock Knowledge Bases is a one-function change in `agent/retrieval.js`.
 - **The Lambda Function URL is public** (CloudFront in front). For anything beyond a demo, put Cognito in front and switch the URL to IAM auth with CloudFront OAC.
-- Custom profiles live in DynamoDB with a 30-day TTL and no login. Fine for a hackathon, not for real money.
+- Custom profiles have no login. On AWS they sit in DynamoDB with a 30-day TTL; on the hosted demo they are in the container's memory and vanish on restart. The three sample households are code, so they always survive. Fine for a hackathon, not for real money.
 
 ## Not advice
 

@@ -1,6 +1,6 @@
 # Deployment guide
 
-Three ways to run Kosh, from least to most setup.
+Four ways to run Kosh, from least to most setup.
 
 ## 1. Local (no cloud, no keys)
 
@@ -26,7 +26,63 @@ docker run -p 8787:8787 -e ANTHROPIC_API_KEY=sk-ant-... kosh
 
 Open http://localhost:8787 - Express serves both the API and the built app.
 
-## 3. AWS (what the demo runs on)
+## 3. Hugging Face Spaces (what the live demo runs on)
+
+A Space is a Docker host: it builds the `Dockerfile` at the repo root and routes traffic to
+the port named in the Space README's YAML header. Free, no card, and it runs the same
+container as section 2 - API and built web app on one origin.
+
+The Space is a **mirror** of this repo, not a branch of it. A Space needs its config header
+at the top of the root `README.md`, and this repo's README is written for GitHub, so
+`scripts/deploy-hf.sh` copies the tracked files of `HEAD`, swaps in
+[`deploy/hf/README.md`](../deploy/hf/README.md), and force-pushes that.
+
+**One-time setup**
+
+1. Create the Space at <https://huggingface.co/new-space> - SDK **Docker**, template **Blank**,
+   visibility **Public**. Note the `<user>/<space>` name.
+2. Create a write token at <https://huggingface.co/settings/tokens>.
+3. In the Space, **Settings -> Variables and secrets**, add:
+   - secret `ANTHROPIC_API_KEY` = your Claude API key
+   - variable `LLM_PROVIDER` = `anthropic`
+
+   Skip both to run the demo on the offline planner instead. Never commit the key - Space
+   secrets are injected as environment variables at runtime.
+
+**Deploy**
+
+```bash
+export HF_TOKEN=hf_...            # or omit it and let git prompt
+npm run deploy:hf -- <user>/<space>
+```
+
+First build takes ~3-5 minutes (`npm ci` plus the Vite build). Watch it at
+`https://huggingface.co/spaces/<user>/<space>?logs=build`. Re-run the same command after any
+commit to redeploy.
+
+**Check it**
+
+```bash
+curl -fsS https://<user>-<space>.hf.space/api/health
+# {"ok":true,"llm":{"provider":"anthropic","model":"claude-opus-5"},"store":"memory",...}
+```
+
+`"store":"memory"` is expected: there is no DynamoDB here, so custom profiles live in the
+container's memory and are lost on restart. The three sample households are code, not data,
+so they always work.
+
+Notes:
+
+- `app_port: 8787` in the Space header must match the `PORT` the container listens on.
+- A free Space sleeps after ~48 hours idle. Open it once before recording or presenting.
+- The container runs as uid 1000 (`USER node`), which is what Spaces expects.
+
+## 4. AWS (the architecture this was designed for)
+
+`infra/template.yaml` is the production target and CI lints it on every push. The live
+demo runs on a Space (section 3) because our AWS account was suspended during the build;
+nothing in the app is AWS-specific - the store falls back to memory when `TABLE_NAME` is
+unset, and the advisor takes either Bedrock or the Claude API.
 
 ### What gets created
 
@@ -117,7 +173,7 @@ sam delete --stack-name kosh-demo
 | `KOSH_BEDROCK_REGION` / `AWS_REGION` | api | region for Bedrock calls |
 | `TABLE_NAME` | api | DynamoDB table; unset = in-memory store |
 | `STATIC_DIR` | api | serve a built web app from this folder (Docker) |
-| `PORT` | api | default 8787 |
+| `PORT` | api | default 8787; must match `app_port` in the Space header |
 | `VITE_API_BASE` | web (build time) | API base URL if not same-origin `/api` |
 
 ## Troubleshooting
@@ -125,4 +181,6 @@ sam delete --stack-name kosh-demo
 - **Advisor says "Couldn't reach the model"** - check `/api/health` for the provider, then CloudWatch logs for `[advisor]`. Usually model access not enabled in `BedrockRegion`, or a region/model-id mismatch. The app keeps working in offline mode meanwhile.
 - **403 / blank page on CloudFront** - the web build isn't in the bucket yet, or the invalidation hasn't finished.
 - **`sam build` fails on esbuild** - run `npm install` at the repo root first; esbuild is a dev dependency of `api`.
-- **Slow first request** - Lambda cold start (~1 s). Hit `/api/health` once before a demo.
+- **Slow first request** - Lambda cold start (~1 s), or a sleeping Space waking up. Hit `/api/health` once before a demo.
+- **Space stuck on "Building"** - open the build logs; the usual cause is `npm ci` failing on a stale `package-lock.json`. Run `npm install` locally, commit the lockfile, redeploy.
+- **Space serves a blank page but `/api/health` works** - the Vite build output did not land in `STATIC_DIR`. Both are set in the `Dockerfile` and should not need changing.
