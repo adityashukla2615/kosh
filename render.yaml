@@ -6,7 +6,7 @@
 # and builds the root Dockerfile. Nothing to fill in - the demo runs keyless.
 services:
   - type: web
-    name: kosh
+    name: kosh                 # Render suffixed this to kosh-2w6y, the name was taken
     runtime: docker
     plan: free
     region: singapore          # closest free region to the users this is built for
@@ -23,4 +23,7 @@ services:
         value: offline
       - key: PORT
         value: 8787
+      # shows up in /api/health so it is obvious which build is serving
+      - key: APP_VERSION
+        value: demo
       # TABLE_NAME deliberately unset -> the store falls back to memory.

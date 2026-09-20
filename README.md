@@ -14,7 +14,12 @@ Built by **Team Br_Tesla** for the BroadBridge hackathon, *AI Wealth Navigator* 
 
 ---
 
-## Try it in two minutes
+## Try it
+
+**Live: <https://kosh-2w6y.onrender.com>** - three sample households, nothing to install. It sleeps when
+idle, so the first page load can take ~50 seconds; after that it's quick.
+
+Or locally, in two minutes:
 
 ```bash
 npm install
@@ -89,7 +94,9 @@ samples/        a sample bank statement CSV for the import feature
 ## Deploying
 
 The live demo is one Docker service on Render - API and web app on a single origin, from
-`render.yaml` at the root. There is a Hugging Face Space path too; both are in the guide.
+`render.yaml` at the root: <https://kosh-2w6y.onrender.com>. It runs the offline planner, so it costs nothing
+and needs no key; putting Claude behind it is a secret and a variable in the dashboard.
+There is a Hugging Face Space path too; both are in the guide.
 
 AWS is the architecture this was designed for and `infra/template.yaml` is real (CI lints it
 on every push): `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the

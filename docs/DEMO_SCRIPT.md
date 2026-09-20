@@ -1,6 +1,11 @@
 # Demo video script (~4 minutes)
 
-Record at 1440×900, browser zoom 100%. Hit `/api/health` once beforehand to warm the Lambda. Clear localStorage so you start on the welcome screen.
+Record at 1440×900, browser zoom 100%. Demo: <https://kosh-2w6y.onrender.com>. Open it a minute beforehand - a free
+Render instance sleeps when idle and takes ~50 s to wake, and you do not want that on tape.
+Clear localStorage so you start on the welcome screen.
+
+The hosted demo runs the **offline planner**: same tools, same engine numbers, plainer wording,
+no model calls. Say so once, at the Ask Kosh step, and carry on.
 
 Talking points are a guide, not a script to read - say them in your own words.
 
@@ -20,7 +25,7 @@ Click **Farhan & Zoya Sheikh**.
 
 - Health score 56. Tap **Insurance** - "₹50 L of life cover against ₹3.8 Cr suggested for two dependents. Health cover only through work."
 - Point at the fan chart: "Net worth in today's rupees, middle case and the range of 8 in 10 futures. That dip is Aarav's college being paid for."
-- Goals: "College fund 36%, retirement at 60 around 16%. These are probabilities from hundreds of simulated markets, not a single straight-line guess."
+- Goals: "College fund around 40%, retirement at 60 around 16%. These are probabilities from hundreds of simulated markets, not a single straight-line guess."
 
 ### 1:05 - What if (45s)
 
@@ -48,7 +53,7 @@ Click **Try it in What if →** on one to show the hand-off.
 - Expand **How I worked this out**: "It read the plan, ran the purchase as a scenario, looked up the note on loans. Four steps."
 - Point at **all figures traced**: "Every rupee and percentage in the answer is checked against the calculations before it's shown. If the model invents a number, it gets sent back to fix it."
 
-(If Claude is connected, also ask something open-ended: "We're thinking of having a second child in two years - what changes?")
+(On the hosted demo the advisor is the offline planner - the numbers above are all real, the wording is just plainer. Say "this is offline mode, same numbers, simpler words" and move on. With Claude connected, this is also where you ask something open-ended: "We're thinking of having a second child in two years - what changes?")
 
 ### 3:15 - Monthly review (30s)
 
@@ -62,8 +67,10 @@ Let the stages tick through; read the first two lines of the note.
 
 *Assumptions page.* Change equity return to 9%, click Apply, jump to Overview - numbers move.
 
-> "Every assumption is visible and editable. Kosh runs on AWS - Lambda, DynamoDB, CloudFront, Claude on Bedrock - deployed from GitHub Actions. Thanks."
+> "Every assumption is visible and editable. Kosh is one container - Express, the engine and the React app - so it runs the same on a laptop, on this host, and on the AWS stack in the repo: Lambda, DynamoDB, CloudFront, Claude on Bedrock, one SAM template. Thanks."
 
 ---
 
-**Backup lines if something breaks live:** the offline planner answers the same questions without a model; say "this is the offline mode - same numbers, simpler words" and carry on.
+**Backup if something breaks live:** run it locally (`npm run dev:api` + `npm run dev:web`) - same
+app, no network. Read numbers off the screen rather than from this script; they move when the
+assumptions do.
