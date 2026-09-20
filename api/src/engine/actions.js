@@ -42,7 +42,9 @@ function termPremiumPerCrore(age) {
 }
 
 export function nextBestActions(profile, a, transactions = []) {
-  const opts = { sims: 400, skipProjection: true };
+  // same path count as every other probability the user sees - the cards sit next to the
+  // goals panel on the Overview, so a cheaper simulation here reads as a contradiction
+  const opts = { sims: a.simulations, skipProjection: true };
   const base = evaluate(profile, a, {}, opts);
   const s = base.summary;
   const out = [];
@@ -82,7 +84,7 @@ export function nextBestActions(profile, a, transactions = []) {
     const monthly = Math.ceil(gap / 12 / 500) * 500;
     const patched = structuredClone(profile);
     patched.assets.liquidFunds = (patched.assets.liquidFunds || 0) + gap;
-    const hs = healthScore(patched, a, planGoals(patched, a, {}, { sims: 300 }));
+    const hs = healthScore(patched, a, planGoals(patched, a, {}, { sims: a.simulations }));
     out.push({
       id: 'emergency',
       category: 'protect',

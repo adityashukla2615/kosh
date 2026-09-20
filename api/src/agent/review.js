@@ -68,7 +68,7 @@ export async function runReview(ctx) {
       { name: 'Both at once', s: { jobLossMonths: 6, marketShockPct: 30 } },
     ];
     const results = tests.map((t) => {
-      const c = compare(profile, a, t.s, { sims: 300 });
+      const c = compare(profile, a, t.s, { sims: a.simulations });
       const worst = [...c.deltas.goals].filter((g) => g.delta != null).sort((x, y) => x.delta - y.delta)[0];
       return { name: t.name, worstGoal: worst?.name, worstDelta: worst?.delta ?? 0, ranOut: c.scenario.projection.probRanOut, healthAfter: c.scenario.health.score };
     });
