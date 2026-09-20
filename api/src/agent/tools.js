@@ -119,7 +119,9 @@ function compactGoal(g) {
 
 export const EXECUTORS = {
   get_snapshot(_, ctx) {
-    const r = evaluate(ctx.profile, ctx.assumptions, {}, { sims: 500 });
+    // same path count as the dashboard: a probability the advisor quotes has to match the
+    // one the user is looking at, or "every number traced" stops being true
+    const r = evaluate(ctx.profile, ctx.assumptions, {}, { sims: ctx.assumptions.simulations });
     const s = r.summary;
     return {
       name: ctx.profile.name,
@@ -142,7 +144,7 @@ export const EXECUTORS = {
   },
 
   run_scenario(input, ctx) {
-    const c = compare(ctx.profile, ctx.assumptions, toScenario(input), { sims: 500 });
+    const c = compare(ctx.profile, ctx.assumptions, toScenario(input), { sims: ctx.assumptions.simulations });
     return {
       levers_applied: input,
       summary: c.narrative,
@@ -160,7 +162,7 @@ export const EXECUTORS = {
   },
 
   check_goal(input, ctx) {
-    const r = evaluate(ctx.profile, ctx.assumptions, {}, { sims: 600, skipProjection: true });
+    const r = evaluate(ctx.profile, ctx.assumptions, {}, { sims: ctx.assumptions.simulations, skipProjection: true });
     const g = r.goals.goals.find((x) => x.id === input.goal_id) || r.goals.goals.find((x) => x.name.toLowerCase().includes(String(input.goal_id).toLowerCase()));
     if (!g) return { error: `No goal with id ${input.goal_id}. Known: ${r.goals.goals.map((x) => x.id).join(', ')}` };
     const tp = Math.min(0.95, Math.max(0.5, Number(input.target_probability) || 0.8));

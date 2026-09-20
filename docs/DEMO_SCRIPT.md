@@ -25,7 +25,7 @@ Click **Farhan & Zoya Sheikh**.
 
 - Health score 56. Tap **Insurance** - "₹50 L of life cover against ₹3.8 Cr suggested for two dependents. Health cover only through work."
 - Point at the fan chart: "Net worth in today's rupees, middle case and the range of 8 in 10 futures. That dip is Aarav's college being paid for."
-- Goals: "College fund around 40%, retirement at 60 around 16%. These are probabilities from hundreds of simulated markets, not a single straight-line guess."
+- Goals: "College fund 36%, retirement at 60 around 16%. These are probabilities from hundreds of simulated markets, not a single straight-line guess."
 
 ### 1:05 - What if (45s)
 
