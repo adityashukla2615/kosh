@@ -1,4 +1,4 @@
-import { summarize, TARGET_EQUITY } from './profile.js';
+import { TARGET_EQUITY } from './profile.js';
 import { evaluate, formatINR as inr, formatPct as pct } from './analysis.js';
 import { solveExtraForGoal, planGoals } from './goals.js';
 import { healthScore } from './health.js';

@@ -14,7 +14,7 @@
 //      by simulation. What to do about a gap is the adviser's call.
 
 import { evaluate } from './analysis.js';
-import { summarize, TARGET_EQUITY } from './profile.js';
+import { TARGET_EQUITY } from './profile.js';
 
 // Severity is 0-1 within a flag. Weight is how much that flag matters relative
 // to the others when the book is ranked. Protection and liquidity outrank

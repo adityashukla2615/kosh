@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
-import { useQuery, Loading, ErrorNote } from '../components/bits.jsx';
+import { useQuery, ErrorNote } from '../components/bits.jsx';
 import { cacheKeys } from '../lib/cache-keys.js';
 
 const cr = (n) => `₹${(n / 1e7).toFixed(n >= 1e9 ? 0 : 1)} Cr`;

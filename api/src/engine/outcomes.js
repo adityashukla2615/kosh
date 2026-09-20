@@ -9,7 +9,7 @@
 // the top recommendations applied - run against the same simulated markets, so
 // the difference is the change and not noise.
 
-import { evaluate, compare } from './analysis.js';
+import { compare } from './analysis.js';
 import { nextBestActions } from './actions.js';
 
 const r2 = (x) => Math.round(x * 1000) / 1000;

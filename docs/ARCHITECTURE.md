@@ -137,7 +137,7 @@ api/src/
 
 The boundary that matters is `engine/` ↔ `agent/`. The engine has no network calls, no
 randomness that is not seeded, and no knowledge that a language model exists. That is what
-makes it testable: 41 tests assert properties of it directly, with no mocking.
+makes it testable: 42 tests assert properties of it directly, with no mocking.
 
 ---
 
@@ -458,7 +458,7 @@ Step-by-step instructions for both paths: [DEPLOYMENT.md](DEPLOYMENT.md).
 `.github/workflows/ci.yml` on every push and pull request:
 
 1. `npm ci`
-2. `npm test` — 41 tests, with `LLM_PROVIDER=offline` so no key is needed and no call is made
+2. `npm test` — 42 tests, with `LLM_PROVIDER=offline` so no key is needed and no call is made
 3. `npm run build` — precomputes the book screening, then builds the React app
 4. `sam validate --lint` and `sam build` — proves the AWS template and Lambda packaging
 5. Uploads the built site as an artifact
@@ -496,7 +496,8 @@ explains rather than hiding.
   and no account model. Production would need Cognito in front, the Function URL switched to
   IAM auth, and CloudFront OAC — called out here rather than left to be discovered.
 - **Secrets never enter the repository.** `ANTHROPIC_API_KEY` is a host-level secret
-  (`sync: false` in `render.yaml`, a Space secret on Hugging Face, IAM on Bedrock).
+  (`sync: false` in `render.yaml`, IAM on Bedrock). The Pages build receives only the API
+  URL, which is public anyway.
 - **No product recommendations.** A compliance stage strips issuer and scheme names from
   generated text, and the suitability record asserts it as a check.
 - **Input limits.** Chat messages are truncated at 1,500 characters; CSV imports are capped at
@@ -508,7 +509,7 @@ explains rather than hiding.
 
 ## 14. Testing
 
-41 tests, `node:test`, no framework. They assert *properties* rather than golden values,
+42 tests, `node:test`, no framework. They assert *properties* rather than golden values,
 because golden values on a Monte Carlo simulation are a maintenance trap.
 
 Examples of what is asserted:

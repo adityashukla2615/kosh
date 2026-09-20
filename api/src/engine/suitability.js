@@ -33,7 +33,6 @@ import { flattenAssumptions } from './assumptions.js';
 import { BOOK_SEED } from '../data/book.js';
 
 const ENGINE_VERSION = process.env.APP_VERSION || 'dev';
-const pct = (p) => `${Math.round(p * 100)}%`;
 
 // Anything that would make this advice about a product rather than a position.
 // The same list the monthly review's compliance stage uses.

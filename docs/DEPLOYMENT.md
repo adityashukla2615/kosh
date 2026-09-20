@@ -75,24 +75,17 @@ Notes:
 - The service name in `render.yaml` decides the URL (`kosh` -> `kosh.onrender.com`). Rename it
   there if that host is taken.
 
-### Alternative: Hugging Face Spaces
+### The app is also on GitHub Pages
 
-Also free and Docker-based, but the Space creation form gates some accounts behind a paid
-plan. If yours doesn't, the repo is set up for it: `deploy/hf/README.md` holds the Space
-config header and `scripts/deploy-hf.sh` pushes a mirror of `HEAD` with that README swapped
-in (a Space needs its YAML at the top of the root README, which would disfigure the GitHub
-one).
+`.github/workflows/pages.yml` builds the React app and publishes it to Pages on every push
+to `main`. The API stays here on Render - Pages serves static files only - so the Pages build
+is given the API's URL at build time and the API's origin policy allows `*.github.io`.
 
-```bash
-export HF_TOKEN=hf_...            # write token, or omit and let git prompt
-bash scripts/deploy-hf.sh <user>/<space>
-```
+Worth having: the UI comes off GitHub's CDN and renders immediately even when this service is
+asleep, so the wait lands on a screen that explains itself rather than on a blank page.
 
-Create the Space as SDK **Docker**, hardware **CPU basic**, storage **None**, Dev Mode off.
-Set `LLM_PROVIDER=offline` as a variable to match Render, or `anthropic` plus an
-`ANTHROPIC_API_KEY` secret. `app_port: 8787` in the Space header must match the container's
-`PORT`. Note that the Space creation form gates some accounts behind a paid plan even for
-free CPU hardware.
+One-time setup: repository **Settings → Pages → Source: "GitHub Actions"**. Override the API
+URL with a repository variable `API_BASE` if the service is ever renamed.
 
 ## 4. AWS (the architecture this was designed for)
 

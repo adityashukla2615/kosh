@@ -51,7 +51,7 @@ ANTHROPIC_API_KEY=sk-ant-...           # Claude API
 USE_BEDROCK=1  AWS_REGION=us-east-1    # Claude on Amazon Bedrock
 ```
 
-Tests: `npm test` (41 tests: engine properties, book surveillance, suitability records,
+Tests: `npm test` (42 tests: engine properties, book surveillance, suitability records,
 agent grounding, HTTP API).
 
 ## The adviser's book
@@ -141,11 +141,9 @@ api/            Node 22 + Express. Same app runs locally and in Lambda.
 web/            React 18 + Vite + Recharts. Hand-written CSS.
 infra/          AWS SAM template (Lambda, Function URL, DynamoDB, S3, CloudFront, alarm)
 .github/        CI (test, build, template lint) and CD (OIDC -> sam deploy -> s3 sync)
-scripts/        build-book.mjs (precomputes the screening), deploy-hf.sh
+scripts/        build-book.mjs - precomputes the book screening at build time
 docs/           architecture, deployment guide, demo script, deck
 render.yaml     blueprint for the live demo (one Docker service)
-deploy/         Hugging Face Space config, if you deploy there instead
-samples/        a sample bank statement CSV for the import feature
 ```
 
 ## Deploying
@@ -153,7 +151,8 @@ samples/        a sample bank statement CSV for the import feature
 The live demo is one Docker service on Render - API and web app on a single origin, from
 `render.yaml` at the root: <https://kosh-2w6y.onrender.com>. It runs the offline planner, so it costs nothing
 and needs no key; putting Claude behind it is a secret and a variable in the dashboard.
-There is a Hugging Face Space path too; both are in the guide.
+The React app is also published to GitHub Pages, which serves it from a CDN so the UI
+appears immediately even while the API host is waking.
 
 AWS is the architecture this was designed for and `infra/template.yaml` is real (CI lints it
 on every push): `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the

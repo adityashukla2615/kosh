@@ -75,9 +75,4 @@ export function invalidate(prefix) {
   }
 }
 
-export function clearCache() {
-  cache.clear();
-  subscribers.forEach((set) => set.forEach((fn) => fn()));
-}
-
-export { cache as _cache, subscribe as _subscribe, FRESH_MS };
+export { cache as _cache, subscribe as _subscribe };
