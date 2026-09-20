@@ -27,7 +27,7 @@ export async function runAdvisor({ ctx, message, history = [] }) {
   if (info.provider === 'offline') return offlineAdvisor({ ctx, message });
 
   const started = Date.now();
-  const trace = [{ kind: 'plan', label: 'Reading your question', detail: `Model: ${info.model} via ${info.provider === 'bedrock' ? 'Amazon Bedrock' : 'Claude API'}`, ms: 0 }];
+  const trace = [{ kind: 'plan', label: 'Reading your question', detail: `Model: ${info.model}`, ms: 0 }];
   const toolOutputs = [];
   const messages = [
     ...history

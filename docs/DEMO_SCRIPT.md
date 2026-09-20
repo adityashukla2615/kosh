@@ -93,7 +93,7 @@ Let the stages tick through; read the first two lines of the note.
 
 *Assumptions page.* Change equity return to 9%, click Apply, jump to Overview - numbers move.
 
-> "Every assumption is visible and editable - and changing one re-screens all 214 households, because nothing is cached for a question the engine has not been asked before. One container: the same code runs on a laptop, on this host, and on the AWS stack in the repo. Thanks."
+> "Every assumption is visible and editable - and changing one re-screens all 214 households, because nothing is cached for a question the engine has not been asked before. One container - the same code runs on a laptop and on this host. Thanks."
 
 ---
 

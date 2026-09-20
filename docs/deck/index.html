@@ -250,27 +250,27 @@
 
 <!-- 9 -->
 <section class="slide">
-  <div class="kicker">Architecture</div>
-  <h2>One container, or serverless on AWS</h2>
+  <div class="kicker">How it ships</div>
+  <h2>One container, one origin, one thing to get wrong</h2>
   <div class="grid g2">
-    <table>
-      <tr><th>Layer</th><th>Service</th></tr>
-      <tr><td>Web</td><td>React on S3 + CloudFront (OAC)</td></tr>
-      <tr><td>API</td><td>Lambda (Node 22, arm64) via Function URL</td></tr>
-      <tr><td>AI</td><td>Claude on Amazon Bedrock</td></tr>
-      <tr><td>State</td><td>DynamoDB, on-demand, 30-day TTL</td></tr>
-      <tr><td>Ops</td><td>CloudWatch, X-Ray, error alarm</td></tr>
-      <tr><td>IaC</td><td>AWS SAM</td></tr>
-      <tr><td>CI/CD</td><td>GitHub Actions → OIDC → sam deploy → s3 sync → smoke test</td></tr>
-    </table>
+    <div>
+      <table>
+        <tr><th>Layer</th><th>What</th></tr>
+        <tr><td>Web</td><td>React 18 + Vite, hand-written CSS</td></tr>
+        <tr><td>API</td><td>Node 22 + Express, same process</td></tr>
+        <tr><td>Engine</td><td>Pure functions, no I/O, no model</td></tr>
+        <tr><td>AI</td><td>Claude, or an offline planner using the same tools</td></tr>
+        <tr><td>Deploy</td><td>Docker, declared in render.yaml</td></tr>
+        <tr><td>CI</td><td>42 tests, then the production build, on every push</td></tr>
+      </table>
+    </div>
     <div class="card" style="font-size:.85em">
-      <b>Why a Function URL, not API Gateway?</b>
-      <p>Agent turns with several tool calls can exceed API Gateway's 30 s limit.</p>
-      <b style="margin-top:.8em">Why BM25, not a vector DB?</b>
-      <p>15 hand-written notes. Right tool for the size; Knowledge Bases is a one-function swap.</p>
+      <b>Why one origin</b>
+      <p>Express serves the built app and the API from the same process: no CORS to configure, one artifact, one deployment target.</p>
+      <b style="margin-top:.8em">Why BM25, not a vector DB</b>
+      <p>15 hand-written notes. Right tool for the size; one function to swap.</p>
       <b style="margin-top:.8em">Same code everywhere</b>
-      <p>Laptop, Docker, this demo and Lambda run the identical Express app. The live demo is one
-      container; the table is the production target, linted in CI.</p>
+      <p>Laptop, container and the live demo run the identical Express app.</p>
     </div>
   </div>
   <div class="foot"><span>Kosh</span><span>11</span></div>
@@ -311,7 +311,7 @@
         <li>Account Aggregator (RBI AA framework) instead of CSV upload</li>
         <li>Tax engine: old vs new regime on real salary structure</li>
         <li>Historical bootstrap returns (fatter tails)</li>
-        <li>Cognito auth, household sharing, monthly review by email</li>
+        <li>Sign-in, household sharing, monthly review by email</li>
       </ul>
     </div>
   </div>

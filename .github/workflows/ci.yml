@@ -26,25 +26,6 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Validate SAM template
-        uses: aws-actions/setup-sam@v2
-        with:
-          use-installer: true
-      - run: sam validate --lint -t infra/template.yaml
-
-      # Linting proves the template parses. Building proves the Lambda actually
-      # packages - esbuild bundle, dependencies, handler resolution - which is
-      # the part that breaks in practice. AWS deployment is blocked on account
-      # access, not on the code, and this is the evidence for that claim.
-      # SAM runs `npm install --production` in a copy of the source, which drops
-      # esbuild because it is a devDependency - so it has to be on PATH instead,
-      # which is what SAM's own error message recommends.
-      - name: Build the Lambda package
-        working-directory: infra
-        run: |
-          npm install -g esbuild@0.24.0
-          sam build -t template.yaml
-
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist

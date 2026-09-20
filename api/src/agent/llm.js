@@ -1,28 +1,22 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { AnthropicBedrockMantle } from '@anthropic-ai/bedrock-sdk';
 
-// Picks the brain. Order: explicit LLM_PROVIDER, then whatever credentials exist,
-// then offline. Offline is a real mode, not an error state - the demo must work on
-// a conference Wi-Fi with no keys.
+// Picks the brain. With an API key the advisor runs on Claude; without one it
+// runs the offline planner.
+//
+// Offline is a real mode, not an error state: it calls the same tools and
+// quotes the same engine numbers in plainer wording, so the demo works on
+// conference wifi with no keys, and the deployed instance runs on it.
 
 let cached;
 
 export function llmInfo() {
   if (cached) return cached.info;
   const want = (process.env.LLM_PROVIDER || 'auto').toLowerCase();
-  let provider = 'offline';
-  if (want === 'anthropic' || (want === 'auto' && process.env.ANTHROPIC_API_KEY)) provider = 'anthropic';
-  else if (want === 'bedrock' || (want === 'auto' && process.env.USE_BEDROCK === '1')) provider = 'bedrock';
+  const provider = want === 'anthropic' || (want === 'auto' && process.env.ANTHROPIC_API_KEY) ? 'anthropic' : 'offline';
 
-  let client = null;
-  let model = null;
-  if (provider === 'anthropic') {
-    client = new Anthropic();
-    model = process.env.KOSH_MODEL || 'claude-opus-5';
-  } else if (provider === 'bedrock') {
-    client = new AnthropicBedrockMantle({ awsRegion: process.env.KOSH_BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1' });
-    model = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-opus-5';
-  }
+  const client = provider === 'anthropic' ? new Anthropic() : null;
+  const model = provider === 'anthropic' ? process.env.KOSH_MODEL || 'claude-opus-5' : null;
+
   cached = { client, info: { provider, model } };
   return cached.info;
 }
@@ -31,14 +25,17 @@ export async function createMessage(params) {
   llmInfo();
   const { client, info } = cached;
   if (!client) throw new Error('LLM not configured');
-  const base = { model: info.model, max_tokens: 16000, output_config: { effort: 'medium' }, ...params };
 
-  if (info.provider === 'anthropic') {
-    // server-side fallback: if Opus declines, the API re-runs on the recommended model
-    // instead of handing us a refusal mid-conversation
-    return client.beta.messages.create({ ...base, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' });
-  }
-  return client.messages.create(base);
+  return client.beta.messages.create({
+    model: info.model,
+    max_tokens: 16000,
+    output_config: { effort: 'medium' },
+    // Server-side fallback: if Opus declines, the API re-runs the request on the
+    // recommended model rather than handing us a refusal mid-conversation.
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    ...params,
+  });
 }
 
 export function textOf(message) {

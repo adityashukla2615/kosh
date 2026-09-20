@@ -59,7 +59,7 @@ plain-language note, all editable, and changing one re-runs everything that depe
 ## 2. System architecture
 
 One React app talking to one API. The API is an Express application that runs unchanged on a
-laptop, in a container, and inside AWS Lambda.
+laptop and in the container.
 
 ```mermaid
 flowchart TB
@@ -73,10 +73,10 @@ flowchart TB
     ENG["engine/ — deterministic<br/>no network, no model"]
     AG["agent/ — decides what to run<br/>and how to say it"]
     SVC[services/<br/>profiles, book cache]
-    ST[(store/<br/>memory or DynamoDB)]
+    ST[(store/<br/>in-memory)]
   end
 
-  LLM[Claude<br/>Bedrock or Anthropic API<br/>optional]
+  LLM[Claude API<br/>optional]
 
   UI -->|HTTPS, same origin| R
   R --> SVC
@@ -104,8 +104,7 @@ calls `/api` with no base URL to get wrong.
 ```
 api/src/
   app.js            route definitions; the only place that knows about HTTP
-  server.js         local/container entry point
-  lambda.js         AWS Lambda entry point (same app, different adapter)
+  server.js         local and container entry point
 
   engine/           deterministic maths — no I/O, no model, pure functions
     profile.js        household summary: income, mix, runway, net worth
@@ -128,11 +127,11 @@ api/src/
     offline.js        the no-model planner
     review.js         the 8-stage monthly review
     retrieval.js      BM25 over the finance notes
-    llm.js            provider selection: Bedrock, Anthropic API, or offline
+    llm.js            provider selection: Claude API, or the offline planner
 
   data/             personas, the generated book, finance notes
   services/         profile loading, book cache
-  store/            key-value: in-memory locally, DynamoDB in Lambda
+  store/            key-value, in-memory behind an interface
 ```
 
 The boundary that matters is `engine/` ↔ `agent/`. The engine has no network calls, no
@@ -282,7 +281,7 @@ deterministic checker verifies it.
 
 BM25 over fifteen hand-written plain-language finance notes. Right-sized for the corpus: a
 vector database over fifteen documents is ceremony, not engineering. `retrieval.js` exposes
-one function, so swapping in Bedrock Knowledge Bases is a single-function change.
+one function, so swapping in a vector store is a single-function change.
 
 ---
 
@@ -362,9 +361,10 @@ cannot silently drift apart.
 Changing an assumption invalidates both caches by changing the key, and the book reports real
 progress while it re-screens all 214 households.
 
-**Store.** A key-value interface with two implementations: an in-memory `Map` locally and in
-the container, DynamoDB when `TABLE_NAME` is set. Custom profiles and imported statements
-expire after 30 days via TTL.
+**Store.** A key-value interface over an in-memory `Map`. Custom profiles and imported
+statements live as long as the process does; the sample households and the adviser's book are
+code rather than stored data, so they survive a restart regardless. Swapping in a durable
+store means writing one more object with the same four methods.
 
 ---
 
@@ -397,7 +397,7 @@ works for all 214 without a parallel set of endpoints.
 
 ## 10. Deployment
 
-### 10.1 Live demo — Render
+### Live demo — Render
 
 One Docker service from the repository root `Dockerfile`: Express serving the API and the
 built React app on a single origin, declared in [`render.yaml`](../render.yaml).
@@ -415,44 +415,6 @@ the variable puts Claude behind it with no rebuild. `TABLE_NAME` is unset, so th
 back to memory — custom profiles live for the life of the container, and the sample
 households are code rather than data, so they always work.
 
-### 10.2 AWS — designed, templated, and CI-proven, not currently running
-
-The AWS path is real: [`infra/template.yaml`](../infra/template.yaml) is a complete SAM
-template, and CI runs `sam validate --lint` **and** `sam build` on every push, so the Lambda
-packaging is proven to work rather than merely claimed.
-
-It is not deployed, for a reason outside the code: the AWS account available to this team was
-suspended during the build. That is stated here rather than implied, because a deployment
-diagram for something that is not running is otherwise a lie.
-
-```mermaid
-flowchart TB
-  B[Browser] --> CF[CloudFront]
-  CF -->|/*| S3[(S3, private + OAC)]
-  CF -->|/api/*| L[Lambda Function URL<br/>Node 22, arm64, 1GB]
-  L --> DDB[(DynamoDB<br/>on-demand, 30-day TTL)]
-  L --> BR[Claude on Amazon Bedrock]
-  L --> CW[CloudWatch + X-Ray<br/>error alarm]
-```
-
-| Service | Used for | Why this |
-|---|---|---|
-| **Lambda** (Node 22, arm64) | The whole API | CPU-bound maths finishing well under a second; one function keeps cold starts and deploys simple |
-| **Function URL** | HTTP entry | Advisor turns with several tool calls can exceed API Gateway's 30s integration timeout |
-| **CloudFront** | App + `/api/*` routing | One origin for UI and API, HTTPS, caching for hashed assets |
-| **S3** (private, OAC) | Built React app | Static hosting without a public bucket |
-| **DynamoDB** (on-demand, TTL) | Custom profiles, imports, last review | Key-value access only, zero idle cost, items self-expire |
-| **Bedrock** | Claude | Keeps data in the account; IAM rather than API keys |
-| **CloudWatch / X-Ray** | Logs, traces, error alarm | Enough to debug a live demo |
-
-Nothing in the application is AWS-specific: the store falls back to memory without
-`TABLE_NAME`, and the advisor takes either Bedrock or the Claude API. The same container image
-runs in both places.
-
-Step-by-step instructions for both paths: [DEPLOYMENT.md](DEPLOYMENT.md).
-
----
-
 ## 11. CI/CD
 
 `.github/workflows/ci.yml` on every push and pull request:
@@ -460,12 +422,9 @@ Step-by-step instructions for both paths: [DEPLOYMENT.md](DEPLOYMENT.md).
 1. `npm ci`
 2. `npm test` — 42 tests, with `LLM_PROVIDER=offline` so no key is needed and no call is made
 3. `npm run build` — precomputes the book screening, then builds the React app
-4. `sam validate --lint` and `sam build` — proves the AWS template and Lambda packaging
-5. Uploads the built site as an artifact
+4. Uploads the built site as an artifact
 
-`.github/workflows/deploy.yml` deploys to AWS via GitHub OIDC (no long-lived keys), gated
-behind a repository variable so it skips rather than fails while AWS is unavailable. Render
-deploys itself from `main` on every push.
+Render rebuilds and redeploys from `main` on every push.
 
 ---
 
@@ -493,15 +452,14 @@ explains rather than hiding.
 - **All data is synthetic.** The three personas and all 214 book households are fabricated.
   Nothing real is stored.
 - **No authentication, by design.** There is nothing to protect: a demo with no real user data
-  and no account model. Production would need Cognito in front, the Function URL switched to
-  IAM auth, and CloudFront OAC — called out here rather than left to be discovered.
+  and no account model. Anything handling a real balance sheet would need sign-in in front of
+  it — called out here rather than left to be discovered.
 - **Secrets never enter the repository.** `ANTHROPIC_API_KEY` is a host-level secret
-  (`sync: false` in `render.yaml`, IAM on Bedrock).
+  (`sync: false` in `render.yaml`).
 - **No product recommendations.** A compliance stage strips issuer and scheme names from
   generated text, and the suitability record asserts it as a check.
 - **Input limits.** Chat messages are truncated at 1,500 characters; CSV imports are capped at
   2 MB and the last 3,000 rows; assumption overrides are clamped to sane bounds.
-- **Data expiry.** Custom profiles and imports carry a 30-day DynamoDB TTL.
 - **Errors do not leak internals.** Stack details are withheld in production responses.
 
 ---
@@ -536,7 +494,6 @@ Examples of what is asserted:
 | Bucket-based goal planning | One pooled portfolio | Pooling hides that near-dated money is being funded with long-dated assets |
 | Plan to ~80% odds | Plan to expected return | Planning on the average is a coin flip, and saying so is more useful than a reassuring number |
 | BM25 retrieval | Vector database | Fifteen documents. One-function swap if the corpus grows |
-| Function URL | API Gateway | Agent turns can exceed the 30s integration timeout |
 | Offline planner as a first-class mode | Require a key | The demo must work with no key and no network to a model |
 | Precompute the default book | Compute per container | It is a pure function; 37s of a judge's attention is not a good use of it |
 | Base rates separated from alerts | Alert on everything | A queue where everything is red is worse than no queue |
@@ -558,4 +515,3 @@ Stated plainly, because a reviewer will find them anyway:
 - **The book is generated, not sampled.** Distributions are shaped to be plausible for urban
   Indian households with an adviser relationship; they are not drawn from real data.
 - **No authentication.** See §13.
-- **AWS is templated and CI-proven but not deployed.** See §10.2.

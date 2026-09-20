@@ -46,9 +46,7 @@ To switch on Claude:
 
 ```bash
 cp .env.example .env
-ANTHROPIC_API_KEY=sk-ant-...           # Claude API
-# or, with AWS credentials in your shell
-USE_BEDROCK=1  AWS_REGION=us-east-1    # Claude on Amazon Bedrock
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 Tests: `npm test` (42 tests: engine properties, book surveillance, suitability records,
@@ -107,14 +105,14 @@ We made them deliberately different so each one exercises a different part of th
 ## What's actually going on
 
 ```
-React (Vite)  ──►  one container (or CloudFront + Lambda)  ──►  DynamoDB / memory
+React (Vite)  ──►  one container: Express serves the API and the built app
                                      │
                                      ├─ engine/      simulation, goals, health score, next-best actions,
                                      │               book surveillance, suitability records
                                      ├─ data/        personas, the generated book, finance notes
                                      ├─ agent/       advisor tool loop, offline planner, review pipeline,
                                      │               BM25 retrieval, number grounding
-                                     └─ Claude (Bedrock or API) - optional
+                                     └─ Claude - optional; offline planner otherwise
 ```
 
 A few decisions worth calling out:
@@ -132,15 +130,14 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Repo map
 
 ```
-api/            Node 22 + Express. Same app runs locally and in Lambda.
+api/            Node 22 + Express. The same app runs locally and in the container.
   src/engine/   the maths - no I/O, pure functions, easy to test
                 surveillance.js (book triage), suitability.js (the record)
   src/agent/    advisor loop, offline planner, review pipeline, retrieval, grounding
   src/data/     personas, the generated book, finance notes, the precomputed screening
   test/         node:test, no extra framework
 web/            React 18 + Vite + Recharts. Hand-written CSS.
-infra/          AWS SAM template (Lambda, Function URL, DynamoDB, S3, CloudFront, alarm)
-.github/        CI (test, build, template lint) and CD (OIDC -> sam deploy -> s3 sync)
+.github/        CI: tests, then the production build
 scripts/        build-book.mjs - precomputes the book screening at build time
 docs/           architecture, deployment guide, demo script, deck
 render.yaml     blueprint for the live demo (one Docker service)
@@ -148,20 +145,16 @@ render.yaml     blueprint for the live demo (one Docker service)
 
 ## Deploying
 
-The live demo is one Docker service on Render - API and web app on a single origin, from
-`render.yaml` at the root: <https://kosh-2w6y.onrender.com>. It runs the offline planner, so it costs nothing
-and needs no key; putting Claude behind it is a secret and a variable in the dashboard.
-The app and the API are one container on one origin, so there is no second deployment
-target and no CORS to configure.
+One Docker service: Express serves the API and the built React app from the same origin, so
+there is no second deployment target and no CORS to configure. [`render.yaml`](render.yaml)
+declares it; Render rebuilds on every push to `main`.
 
-AWS is the architecture this was designed for and `infra/template.yaml` is real (CI lints it
-on every push): `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the
-bucket it prints, or push to `main` with the GitHub OIDC role set up. We host the demo
-elsewhere only because our AWS account was suspended mid-build. Nothing in the app is tied
-to AWS: the store falls back to memory without `TABLE_NAME`, and the advisor takes Bedrock
-or the Claude API.
+```bash
+docker build -t kosh .
+docker run -p 8787:8787 kosh        # http://localhost:8787
+```
 
-Every path, step by step, in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Step by step, including how to put Claude behind it: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Things we know are rough
 
@@ -171,9 +164,9 @@ We'd rather say these than have a judge find them:
 - **Returns are normally distributed log-returns.** Real markets have fatter tails. Planning to 80% odds partly compensates; a proper fix would be bootstrapping from historical Nifty/gilt data.
 - **Insurance premiums are ballparks** by age band, labelled as such.
 - **The book is generated, not real.** Distributions are shaped to be plausible for urban Indian households with an adviser relationship; they are not sampled from real data, and the insurance need figures are rules of thumb rather than underwriting.
-- **Retrieval is BM25 over 15 hand-written notes.** It's the right size for the corpus. Swapping in Bedrock Knowledge Bases is a one-function change in `agent/retrieval.js`.
-- **The Lambda Function URL is public** (CloudFront in front). For anything beyond a demo, put Cognito in front and switch the URL to IAM auth with CloudFront OAC.
-- Custom profiles have no login. On AWS they sit in DynamoDB with a 30-day TTL; on the hosted demo they are in the container's memory and vanish on restart. The three sample households are code, so they always survive. Fine for a hackathon, not for real money.
+- **Retrieval is BM25 over 15 hand-written notes.** It's the right size for the corpus; swapping in a vector store is a one-function change in `agent/retrieval.js`.
+- **There is no authentication.** Nothing here is private - synthetic households, no accounts - but anything beyond a demo would need sign-in before it went near a real balance sheet.
+- **Custom profiles live in memory** and vanish when the container restarts. The three sample households and the adviser's book are code rather than stored data, so they always survive. Fine for a hackathon, not for real money.
 
 ## Not advice
 

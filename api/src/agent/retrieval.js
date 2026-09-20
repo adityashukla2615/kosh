@@ -1,7 +1,7 @@
 import { GUIDES } from '../data/guides.js';
 
 // Plain BM25 over ~15 short notes. A vector DB would be overkill for this corpus;
-// swapping to Bedrock Knowledge Bases later only means replacing search().
+// swapping in a vector store later only means replacing search().
 
 const STOP = new Set('a an and are as at be but by can do does for from how i if in is it its me my of on or should so than that the this to was what when where which who why will with you your we our'.split(' '));
 
