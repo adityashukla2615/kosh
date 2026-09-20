@@ -534,3 +534,16 @@ kbd {
 }
 .screening { max-width: 560px; }
 .screening .bar > i { transition: width 0.4s ease; }
+
+/* "what the plan is worth" - the answer to the question people arrive with */
+.outcome { border-color: var(--line-2); }
+.outcome-head { font-size: 22px; line-height: 1.25; margin-top: 4px; }
+.outcome-head b { font-weight: 600; }
+.outcome .up { color: var(--green); }
+.outcome-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+.outcome-grid .v { font-family: var(--serif); font-size: 21px; line-height: 1.2; margin-top: 2px; }
+.outcome-grid .s { font-size: 12px; display: block; }
+@media (max-width: 600px) {
+  .outcome-head { font-size: 18px; }
+  .outcome-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+}

@@ -143,6 +143,7 @@ export const api = {
   solveGoal: (id, goalId, targetProbability, assumptions) =>
     request(`/profiles/${id}/goals/${goalId}/solve`, { method: 'POST', body: { targetProbability, assumptions } }),
   actions: (id, assumptions) => request(`/profiles/${id}/actions`, { method: 'POST', body: { assumptions } }),
+  outcome: (id, assumptions) => request(`/profiles/${id}/outcome`, { method: 'POST', body: { assumptions }, long: true }),
   spending: (id) => request(`/profiles/${id}/spending`, { method: 'POST', body: {} }),
   importCsv: (id, csv) =>
     request(`/profiles/${id}/transactions/import`, { method: 'POST', body: csv, headers: { 'content-type': 'text/csv' } }),

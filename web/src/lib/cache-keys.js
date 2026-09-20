@@ -16,6 +16,7 @@ export const cacheKeys = {
   overview: (id, assumptions) => `overview:${id}:${stable(assumptions)}`,
   actions: (id, assumptions) => `actions:${id}:${stable(assumptions)}`,
   spending: (id) => `spending:${id}`,
+  outcome: (id, assumptions) => `outcome:${id}:${stable(assumptions)}`,
   profile: (id) => `profile:${id}`,
   book: (assumptions) => `book:${stable(assumptions)}`,
   record: (id, assumptions) => `record:${id}:${stable(assumptions)}`,

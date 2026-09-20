@@ -32,6 +32,14 @@ jobs:
           use-installer: true
       - run: sam validate --lint -t infra/template.yaml
 
+      # Linting proves the template parses. Building proves the Lambda actually
+      # packages - esbuild bundle, dependencies, handler resolution - which is
+      # the part that breaks in practice. AWS deployment is blocked on account
+      # access, not on the code, and this is the evidence for that claim.
+      - name: Build the Lambda package
+        working-directory: infra
+        run: sam build -t template.yaml
+
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist

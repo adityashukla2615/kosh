@@ -3,6 +3,7 @@ import { inr, pct, greeting, firstName } from '../lib/format.js';
 import { useQuery, Loading, ErrorNote, Revalidating, Pillars, ProbBar, StatusChip, ActionItem } from '../components/bits.jsx';
 import { cacheKeys } from '../lib/cache-keys.js';
 import FanChart from '../components/FanChart.jsx';
+import Outcome from '../components/Outcome.jsx';
 
 export default function Overview({ profileId, assumptions, go, tryScenario }) {
   const { data, error, loading, revalidating, refetch } = useQuery(cacheKeys.overview(profileId, assumptions), () =>
@@ -56,6 +57,8 @@ export default function Overview({ profileId, assumptions, go, tryScenario }) {
           <span className="s">incl. EPF</span>
         </div>
       </div>
+
+      <Outcome profileId={profileId} assumptions={assumptions} go={go} />
 
       <div className="grid g-main">
         <div className="card">

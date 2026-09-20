@@ -5,6 +5,7 @@ import { resolveAssumptions, flattenAssumptions, DEFAULT_ASSUMPTIONS } from './e
 import { evaluate, compare } from './engine/analysis.js';
 import { solveExtraForGoal } from './engine/goals.js';
 import { nextBestActions } from './engine/actions.js';
+import { projectedOutcome } from './engine/outcomes.js';
 import { analyzeSpending, parseStatementCsv, CATEGORY_LABELS } from './engine/spending.js';
 import { LEVERS } from './engine/scenario.js';
 import { ASSET_LABELS } from './engine/profile.js';
@@ -141,6 +142,14 @@ export function createApp() {
   app.post('/api/profiles/:id/actions', withCtx, (req, res) => {
     const { profile, assumptions, transactions } = req.ctx;
     res.json({ actions: nextBestActions(profile, assumptions, transactions) });
+  });
+
+  // What following the plan is worth. Its own route rather than part of the
+  // overview, because it costs a full action ranking plus a comparison and the
+  // dashboard should not wait for it.
+  app.post('/api/profiles/:id/outcome', withCtx, (req, res) => {
+    const { profile, assumptions, transactions } = req.ctx;
+    res.json(projectedOutcome(profile, assumptions, transactions));
   });
 
   app.post('/api/profiles/:id/spending', withCtx, (req, res) => {

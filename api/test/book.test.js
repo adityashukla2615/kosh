@@ -232,3 +232,24 @@ test('the shipped screening still matches what the engine produces now', async (
   // Spot-check the substance, not just the shape.
   assert.deepEqual(shipped.queue[0].flags.map((f) => f.code), fresh.queue[0].flags.map((f) => f.code), 'top household has the same findings');
 });
+
+test('the projected outcome is measured against the same markets, not asserted', async () => {
+  // Business value has to be computed like everything else, or it is marketing.
+  const { projectedOutcome } = await import('../src/engine/outcomes.js');
+  const { PERSONAS } = await import('../src/data/personas.js');
+
+  for (const p of PERSONAS) {
+    const o = projectedOutcome(p, a, []);
+    assert.equal(o.available, true, `${p.id} has something to project`);
+    assert.ok(o.actionsApplied.length > 0, `${p.id} applies at least one action`);
+
+    // Applying the engine's own top recommendations must not make a household
+    // worse off. If this ever fails, the ranking is recommending harm.
+    assert.ok(o.healthScore.after >= o.healthScore.before, `${p.id} health does not fall`);
+    assert.ok(o.medianWealth.after >= o.medianWealth.before, `${p.id} median wealth does not fall`);
+    assert.ok(o.riskOfRunningOut.after <= o.riskOfRunningOut.before + 0.01, `${p.id} ruin risk does not rise`);
+
+    assert.ok(o.goalsImproved >= 1, `${p.id} improves at least one goal`);
+    assert.equal(o.basis.paths, a.simulations, `${p.id} states the path count it used`);
+  }
+});
