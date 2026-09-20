@@ -81,14 +81,15 @@ web/            React 18 + Vite + Recharts. Hand-written CSS.
 infra/          AWS SAM template (Lambda, Function URL, DynamoDB, S3, CloudFront, alarm)
 .github/        CI (test, build, template lint) and CD (OIDC -> sam deploy -> s3 sync)
 docs/           architecture, deployment guide, demo script, deck
-deploy/         Hugging Face Space config (the live demo host)
+render.yaml     blueprint for the live demo (one Docker service)
+deploy/         Hugging Face Space config, if you deploy there instead
 samples/        a sample bank statement CSV for the import feature
 ```
 
 ## Deploying
 
-The live demo is a Docker Space on Hugging Face - one container, API and web app on one
-origin: `npm run deploy:hf -- <user>/<space>`.
+The live demo is one Docker service on Render - API and web app on a single origin, from
+`render.yaml` at the root. There is a Hugging Face Space path too; both are in the guide.
 
 AWS is the architecture this was designed for and `infra/template.yaml` is real (CI lints it
 on every push): `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the
@@ -97,7 +98,7 @@ elsewhere only because our AWS account was suspended mid-build. Nothing in the a
 to AWS: the store falls back to memory without `TABLE_NAME`, and the advisor takes Bedrock
 or the Claude API.
 
-Both paths, step by step, in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Every path, step by step, in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Things we know are rough
 

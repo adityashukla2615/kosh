@@ -26,61 +26,65 @@ docker run -p 8787:8787 -e ANTHROPIC_API_KEY=sk-ant-... kosh
 
 Open http://localhost:8787 - Express serves both the API and the built app.
 
-## 3. Hugging Face Spaces (what the live demo runs on)
+## 3. Render (what the live demo runs on)
 
-A Space is a Docker host: it builds the `Dockerfile` at the repo root and routes traffic to
-the port named in the Space README's YAML header. Free, no card, and it runs the same
-container as section 2 - API and built web app on one origin.
+Render runs the same container as section 2: Express serving the API and the built React app
+on one origin. Free plan, no card. [`render.yaml`](../render.yaml) at the repo root is the
+blueprint - it names the Dockerfile, the health check and the one secret Render should ask
+for rather than read from git.
 
-The Space is a **mirror** of this repo, not a branch of it. A Space needs its config header
-at the top of the root `README.md`, and this repo's README is written for GitHub, so
-`scripts/deploy-hf.sh` copies the tracked files of `HEAD`, swaps in
-[`deploy/hf/README.md`](../deploy/hf/README.md), and force-pushes that.
+**Setup**
 
-**One-time setup**
+1. <https://render.com> -> sign in with GitHub -> **New** -> **Blueprint** -> pick this repo.
+2. Render reads `render.yaml` and shows one service, `kosh`. It prompts for
+   `ANTHROPIC_API_KEY` because that var is marked `sync: false`. Paste the key there.
+   Leave it blank to run the demo on the offline planner instead - nothing breaks.
+3. **Apply**. First build takes ~5 minutes (`npm ci` plus the Vite build).
 
-1. Create the Space at <https://huggingface.co/new-space> - SDK **Docker**, template **Blank**,
-   visibility **Public**. Note the `<user>/<space>` name.
-2. Create a write token at <https://huggingface.co/settings/tokens>.
-3. In the Space, **Settings -> Variables and secrets**, add:
-   - secret `ANTHROPIC_API_KEY` = your Claude API key
-   - variable `LLM_PROVIDER` = `anthropic`
-
-   Skip both to run the demo on the offline planner instead. Never commit the key - Space
-   secrets are injected as environment variables at runtime.
-
-**Deploy**
-
-```bash
-export HF_TOKEN=hf_...            # or omit it and let git prompt
-npm run deploy:hf -- <user>/<space>
-```
-
-First build takes ~3-5 minutes (`npm ci` plus the Vite build). Watch it at
-`https://huggingface.co/spaces/<user>/<space>?logs=build`. Re-run the same command after any
-commit to redeploy.
+Every push to `main` redeploys (`autoDeployTrigger: commit`).
 
 **Check it**
 
 ```bash
-curl -fsS https://<user>-<space>.hf.space/api/health
+curl -fsS https://kosh.onrender.com/api/health
 # {"ok":true,"llm":{"provider":"anthropic","model":"claude-opus-5"},"store":"memory",...}
 ```
 
 `"store":"memory"` is expected: there is no DynamoDB here, so custom profiles live in the
-container's memory and are lost on restart. The three sample households are code, not data,
-so they always work.
+container and are lost on restart. The three sample households are code, not data, so they
+always work.
 
 Notes:
 
-- `app_port: 8787` in the Space header must match the `PORT` the container listens on.
-- A free Space sleeps after ~48 hours idle. Open it once before recording or presenting.
-- The container runs as uid 1000 (`USER node`), which is what Spaces expects.
+- **A free service sleeps after 15 minutes idle** and takes ~50 s to wake. Open the site or
+  curl `/api/health` a minute before demoing or recording. A free cron ping every 10 minutes
+  keeps it warm if you'd rather not think about it.
+- Free instances get 512 MB RAM. A 500-path simulation fits comfortably; if you raise
+  `simulations` a long way past that, watch for restarts in the Render logs.
+- The service name in `render.yaml` decides the URL (`kosh` -> `kosh.onrender.com`). Rename it
+  there if that host is taken.
+
+### Alternative: Hugging Face Spaces
+
+Also free and Docker-based, but the Space creation form gates some accounts behind a paid
+plan. If yours doesn't, the repo is set up for it: `deploy/hf/README.md` holds the Space
+config header and `scripts/deploy-hf.sh` pushes a mirror of `HEAD` with that README swapped
+in (a Space needs its YAML at the top of the root README, which would disfigure the GitHub
+one).
+
+```bash
+export HF_TOKEN=hf_...            # write token, or omit and let git prompt
+bash scripts/deploy-hf.sh <user>/<space>
+```
+
+Create the Space as SDK **Docker**, hardware **CPU basic**, storage **None**, Dev Mode off.
+Set `ANTHROPIC_API_KEY` as a Space secret and `LLM_PROVIDER=anthropic` as a variable.
+`app_port: 8787` in the Space header must match the container's `PORT`.
 
 ## 4. AWS (the architecture this was designed for)
 
 `infra/template.yaml` is the production target and CI lints it on every push. The live
-demo runs on a Space (section 3) because our AWS account was suspended during the build;
+demo runs on a container host (section 3) because our AWS account was suspended during the build;
 nothing in the app is AWS-specific - the store falls back to memory when `TABLE_NAME` is
 unset, and the advisor takes either Bedrock or the Claude API.
 
@@ -173,7 +177,7 @@ sam delete --stack-name kosh-demo
 | `KOSH_BEDROCK_REGION` / `AWS_REGION` | api | region for Bedrock calls |
 | `TABLE_NAME` | api | DynamoDB table; unset = in-memory store |
 | `STATIC_DIR` | api | serve a built web app from this folder (Docker) |
-| `PORT` | api | default 8787; must match `app_port` in the Space header |
+| `PORT` | api | default 8787; set in `render.yaml`, and must match `app_port` on a Space |
 | `VITE_API_BASE` | web (build time) | API base URL if not same-origin `/api` |
 
 ## Troubleshooting
@@ -181,6 +185,6 @@ sam delete --stack-name kosh-demo
 - **Advisor says "Couldn't reach the model"** - check `/api/health` for the provider, then CloudWatch logs for `[advisor]`. Usually model access not enabled in `BedrockRegion`, or a region/model-id mismatch. The app keeps working in offline mode meanwhile.
 - **403 / blank page on CloudFront** - the web build isn't in the bucket yet, or the invalidation hasn't finished.
 - **`sam build` fails on esbuild** - run `npm install` at the repo root first; esbuild is a dev dependency of `api`.
-- **Slow first request** - Lambda cold start (~1 s), or a sleeping Space waking up. Hit `/api/health` once before a demo.
-- **Space stuck on "Building"** - open the build logs; the usual cause is `npm ci` failing on a stale `package-lock.json`. Run `npm install` locally, commit the lockfile, redeploy.
-- **Space serves a blank page but `/api/health` works** - the Vite build output did not land in `STATIC_DIR`. Both are set in the `Dockerfile` and should not need changing.
+- **Slow first request** - a sleeping free Render service waking up (~50 s), or a Lambda cold start (~1 s). Hit `/api/health` once before a demo.
+- **Build stuck or failing on the host** - open the build logs; the usual cause is `npm ci` failing on a stale `package-lock.json`. Run `npm install` locally, commit the lockfile, redeploy.
+- **Blank page but `/api/health` works** - the Vite build output did not land in `STATIC_DIR`. Both are set in the `Dockerfile` and should not need changing.
