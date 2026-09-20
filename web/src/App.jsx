@@ -14,6 +14,8 @@ import Spending from './pages/Spending.jsx';
 import Advisor from './pages/Advisor.jsx';
 import Review from './pages/Review.jsx';
 import Assumptions from './pages/Assumptions.jsx';
+import Book from './pages/Book.jsx';
+import Record from './pages/Record.jsx';
 
 const PAGES = [
   { id: 'overview', label: 'Overview', C: Overview },
@@ -83,10 +85,11 @@ export default function App() {
   }, []);
 
   const pick = (p) => {
+    if (p.fromBook) prefetch(cacheKeys.record(p.id, assumptions), () => api.record(p.id, assumptions));
     // Start the simulation before the shell renders, so the Overview usually has
     // its numbers by the time the user is looking at it.
     prefetch(cacheKeys.overview(p.id, assumptions), () => api.overview(p.id, assumptions));
-    setProfile({ id: p.id, name: p.name, custom: !!p.custom });
+    setProfile({ id: p.id, name: p.name, custom: !!p.custom, fromBook: !!p.fromBook });
     go('overview');
   };
 
@@ -148,8 +151,34 @@ export default function App() {
     );
   }
 
+  // The book and a record are adviser surfaces: they sit outside the household
+  // shell, because neither belongs to one household.
+  if (route.page === 'book') {
+    return (
+      <div className="adviser">
+        <TopBar onHome={() => go('')} />
+        <ErrorBoundary>
+          <ConnectionBanner />
+          <Book meta={meta} assumptions={assumptions} onOpenHousehold={(row) => pick({ id: row.id, name: row.name, fromBook: true })} />
+        </ErrorBoundary>
+      </div>
+    );
+  }
+
+  if (route.page === 'record' && route.sub) {
+    return (
+      <div className="adviser">
+        <TopBar onHome={() => go('')} />
+        <ErrorBoundary>
+          <ConnectionBanner />
+          <Record householdId={route.sub} assumptions={assumptions} onBack={() => go('book')} />
+        </ErrorBoundary>
+      </div>
+    );
+  }
+
   if (route.page === 'start') return <Onboarding onDone={pick} onBack={() => go('')} />;
-  if (!profile || !page) return <Welcome meta={meta} onPick={pick} onCustom={() => go('start')} current={profile} onResume={() => go('overview')} />;
+  if (!profile || !page) return <Welcome meta={meta} onPick={pick} onCustom={() => go('start')} current={profile} onResume={() => go('overview')} onBook={() => go('book')} />;
 
   const Page = page.C;
   const llm = meta?.llm;
@@ -164,10 +193,12 @@ export default function App() {
           <b>Kosh</b>
           <span>wealth, explained</span>
         </div>
-        <button className="who" onClick={() => go('')} title="Switch household">
+        <button className="who" onClick={() => go(profile.fromBook ? 'book' : '')} title={profile.fromBook ? 'Back to the book' : 'Switch household'}>
           <span className="caps">Planning for</span>
           <span className="name">{profile.name}</span>
-          <span className="small muted">{profile.custom ? 'Your numbers' : 'Sample household'} · switch</span>
+          <span className="small muted">
+            {profile.fromBook ? '← back to book' : profile.custom ? 'Your numbers' : 'Sample household · switch'}
+          </span>
         </button>
         <nav className="nav" aria-label="Sections">
           {PAGES.map((p, i) => (
@@ -296,6 +327,19 @@ function Shortcuts({ pages, onClose }) {
           </div>
         </dl>
       </div>
+    </div>
+  );
+}
+
+/** Masthead for the adviser-level surfaces, which have no household sidebar. */
+function TopBar({ onHome }) {
+  return (
+    <div className="topbar">
+      <button className="brand plain" onClick={onHome}>
+        <b>Kosh</b>
+        <span>wealth, explained</span>
+      </button>
+      <span className="tiny muted">Synthetic data · not investment advice</span>
     </div>
   );
 }

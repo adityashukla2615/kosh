@@ -126,6 +126,13 @@ async function request(path, { method = 'GET', body, headers, long = false, sign
 
 export const api = {
   meta: () => request('/meta'),
+  // Screening the whole book is cached server-side; the first call after a cold
+  // start does the work, the rest are lookups.
+  book: (assumptions, full = false) =>
+    request(`/book?${new URLSearchParams({ ...(Object.keys(assumptions || {}).length ? { assumptions: JSON.stringify(assumptions) } : {}), ...(full ? { full: '1' } : {}) })}`, { long: true }),
+  record: (id, assumptions) =>
+    request(`/book/households/${id}/record`, { method: 'POST', body: { assumptions } }),
+  verifyRecord: (record) => request('/book/records/verify', { method: 'POST', body: { record } }),
   health: () => request('/health'),
   createProfile: (form) => request('/profiles', { method: 'POST', body: form }),
   overview: (id, assumptions) => request(`/profiles/${id}/overview`, { method: 'POST', body: { assumptions } }),

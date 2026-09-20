@@ -6,7 +6,7 @@ const initials = (n) =>
     .map((w) => w[0])
     .join('');
 
-export default function Welcome({ meta, onPick, onCustom, current, onResume }) {
+export default function Welcome({ meta, onPick, onCustom, current, onResume, onBook }) {
   return (
     <div className="welcome">
       <div className="brand" style={{ padding: 0, marginBottom: 40 }}>
@@ -15,12 +15,26 @@ export default function Welcome({ meta, onPick, onCustom, current, onResume }) {
       </div>
 
       <div className="hero">
-        <h1>Your money, explained back to you - with the working shown.</h1>
+        <h1>Advice you can show your working for.</h1>
         <p>
-          Kosh looks at what you earn, spend, save and owe, simulates hundreds of possible futures, and tells you the few things worth doing next. Every number
-          has a reason you can open, and every assumption can be changed.
+          Kosh simulates a household's whole plan - every goal, every what-if, every recommendation - and keeps the working. One household sees why. An
+          adviser sees which of their book needs them this week. A reviewer sees what was considered and rejected, two years later.
         </p>
       </div>
+
+      {/* The adviser view is the point of the product, so it leads. */}
+      <button className="card entry" onClick={onBook}>
+        <span>
+          <span className="caps">Start here</span>
+          <h2>Open the adviser book</h2>
+          <span className="muted">
+            214 households, screened by the same engine. Who needs a call this week, why, and the suitability record behind every recommendation.
+          </span>
+        </span>
+        <span className="entry-go" aria-hidden="true">
+          →
+        </span>
+      </button>
 
       {current && (
         <div className="row" style={{ marginTop: 24 }}>
@@ -31,7 +45,7 @@ export default function Welcome({ meta, onPick, onCustom, current, onResume }) {
       )}
 
       <div className="caps" style={{ marginTop: 44 }}>
-        Pick a sample household
+        Or go straight into a household
       </div>
       <div className="personas" style={{ marginTop: 12 }}>
         {(meta?.personas || [1, 2, 3]).map((p, i) =>

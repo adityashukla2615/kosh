@@ -1,4 +1,5 @@
 import { PERSONAS, profileFromForm } from '../data/personas.js';
+import { getHousehold } from '../data/book.js';
 import { generateTransactions } from '../engine/spending.js';
 import { getStore } from '../store/index.js';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +9,12 @@ const txnCache = new Map();
 export async function loadProfile(id) {
   const persona = PERSONAS.find((p) => p.id === id);
   if (persona) return structuredClone(persona);
+  // A household from the adviser's book is an ordinary profile. Resolving it
+  // here rather than in a parallel set of routes means every existing surface -
+  // plan, goals, what-if, the adviser and the monthly review - works for all 214
+  // of them without knowing the book exists.
+  const fromBook = getHousehold(id);
+  if (fromBook) return structuredClone(fromBook);
   const store = await getStore();
   return store.get(`profile#${id}`);
 }

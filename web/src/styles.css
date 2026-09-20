@@ -456,3 +456,79 @@ kbd {
   body { background: #fff; font-size: 11pt; }
   a[href]::after { content: ''; }
 }
+
+/* ---------- adviser surfaces ----------
+   The book and the suitability record belong to the adviser, not to one
+   household, so they sit outside the household shell and get their own
+   masthead. Same type, same palette - a different altitude. */
+.adviser { max-width: 1180px; margin: 0 auto; padding: 0 28px 72px; }
+.topbar { display: flex; justify-content: space-between; align-items: baseline; padding: 22px 0 26px; }
+.brand.plain { all: unset; cursor: pointer; display: flex; align-items: baseline; gap: 8px; }
+.brand.plain:focus-visible { outline: 2px solid var(--green-2); outline-offset: 3px; border-radius: 4px; }
+
+.book-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
+.book-head p { margin-top: 6px; }
+/* The scale claim, stated as a measurement rather than a boast. */
+.compute { text-align: right; }
+.compute .num { display: block; font-family: var(--serif); font-size: 26px; line-height: 1.1; }
+.sec { font-size: 15px; letter-spacing: 0; margin-bottom: 10px; }
+.sec-head { align-items: baseline; margin-bottom: 10px; gap: 16px; flex-wrap: wrap; }
+.structural b { display: block; font-family: var(--serif); font-size: 16.5px; line-height: 1.3; margin-bottom: 6px; }
+
+/* queue */
+.queue { padding: 0; overflow: hidden; }
+.qrow { border-top: 1px solid var(--line); }
+.qrow:first-child { border-top: 0; }
+.qrow.open { background: #fbf8f1; }
+.qmain {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+  display: grid; grid-template-columns: 34px minmax(0, 1.5fr) 92px minmax(0, 1.4fr);
+  align-items: center; gap: 14px; padding: 12px 18px;
+}
+.qmain:hover { background: rgba(29, 38, 34, 0.03); }
+.qmain:focus-visible { outline: 2px solid var(--green-2); outline-offset: -2px; }
+.qrow .rank { font-size: 17px; color: var(--muted); }
+.qrow .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.qrow .who b { font-weight: 600; }
+.qrow .worth { text-align: right; font-size: 14.5px; }
+.flagchips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.flagchips .chip { font-size: 11.5px; padding: 2px 8px; }
+.qdetail { padding: 2px 18px 16px 66px; }
+.finding { padding: 9px 0; border-top: 1px dashed var(--line); }
+.finding:first-child { border-top: 0; }
+.finding b { font-size: 13.5px; }
+.finding p { margin-top: 3px; }
+
+/* entry card on the welcome screen */
+.entry {
+  all: unset; box-sizing: border-box; cursor: pointer; margin-top: 34px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  background: var(--card); border: 1px solid var(--line-2); border-radius: var(--radius);
+  padding: 20px 24px; box-shadow: var(--shadow); transition: transform 0.12s, border-color 0.12s;
+}
+.entry:hover { transform: translateY(-2px); border-color: var(--ink-2); }
+.entry:focus-visible { outline: 2px solid var(--green-2); outline-offset: 3px; }
+.entry h2 { margin: 4px 0 6px; }
+.entry .muted { display: block; max-width: 620px; font-size: 13.5px; }
+.entry-go { font-size: 26px; color: var(--green); flex: none; }
+
+/* suitability record */
+.record { padding-bottom: 40px; }
+.rec-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
+.rec-section { margin-bottom: 16px; }
+.rec-section h2 { font-size: 16px; margin-bottom: 10px; }
+.rec-title { font-family: var(--serif); font-size: 21px; line-height: 1.25; }
+.checkrow { display: grid; grid-template-columns: 20px 1fr; gap: 8px; padding: 6px 0; align-items: start; }
+.tick { font-size: 13px; line-height: 1.5; }
+.tick.ok { color: var(--green-2); }
+.tick.no { color: var(--red); }
+
+@media (max-width: 860px) {
+  .qmain { grid-template-columns: 26px minmax(0, 1fr) 84px; gap: 10px; padding: 12px 14px; }
+  .flagchips { grid-column: 2 / -1; justify-content: flex-start; }
+  .qdetail { padding-left: 14px; }
+  .book-head, .rec-head { flex-direction: column; align-items: flex-start; }
+  .compute { text-align: left; }
+  .adviser { padding: 0 16px 56px; }
+  .entry { flex-direction: column; align-items: flex-start; }
+}

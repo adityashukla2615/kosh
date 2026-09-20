@@ -12,7 +12,13 @@ import { runAdvisor } from './agent/advisor.js';
 import { runReview } from './agent/review.js';
 import { llmInfo } from './agent/llm.js';
 import { getStore } from './store/index.js';
+import { getScreenedBook, bookStatus, warmBook } from './services/book.js';
+import { screenHousehold } from './engine/surveillance.js';
+import { buildSuitabilityRecord, verifyRecord } from './engine/suitability.js';
 import { loadProfile, createProfile, loadTransactions, saveImportedTransactions, clearImportedTransactions } from './services/profiles.js';
+
+// Whose book this is. Synthetic, like everything else here.
+const ADVISER = { name: 'Priya Menon', firm: 'Meridian Wealth Partners', licence: 'INA000009999 (illustrative)' };
 
 export function createApp() {
   const app = express();
@@ -32,6 +38,60 @@ export function createApp() {
     next();
   });
 
+  // ---- the adviser's book -------------------------------------------------
+  // Screening is deterministic and cached per assumption set, so these read as
+  // fast lookups after the first call. Assumptions arrive as a query string here
+  // rather than a body because these are GETs that clients will want to cache.
+
+  const bookAssumptions = (req) => resolveAssumptions(req.query?.assumptions ? JSON.parse(req.query.assumptions) : undefined);
+
+  app.get('/api/book', wrap(async (req, res) => {
+    const a = bookAssumptions(req);
+    const book = await getScreenedBook(a, { queueSize: Number(req.query.queue) || 12 });
+    // The full 214 rows are only sent when asked for; the queue and the
+    // aggregates are what the landing view actually needs.
+    const full = req.query.full === '1';
+    res.json({
+      queue: book.queue,
+      structural: book.structural,
+      stats: book.stats,
+      byFlag: book.byFlag,
+      bySegment: book.bySegment,
+      generatedAt: book.generatedAt,
+      computeMs: book.computeMs,
+      rows: full ? book.rows : undefined,
+      assumptions: flattenAssumptions(a),
+    });
+  }));
+
+  app.get('/api/book/status', wrap(async (req, res) => {
+    res.json(bookStatus(bookAssumptions(req)));
+  }));
+
+  app.get('/api/book/households/:id', withCtx, wrap(async (req, res) => {
+    const { profile, assumptions } = req.ctx;
+    res.json({ profile, screen: screenHousehold(profile, assumptions) });
+  }));
+
+  // The suitability record for a recommendation: what was advised, what else was
+  // simulated, on what assumptions, and a digest so alteration is detectable.
+  app.post('/api/book/households/:id/record', withCtx, wrap(async (req, res) => {
+    const { profile, assumptions, transactions } = req.ctx;
+    const record = buildSuitabilityRecord(profile, assumptions, {
+      actionId: req.query.action || null,
+      transactions,
+      adviser: ADVISER,
+    });
+    if (!record) return res.status(404).json({ error: 'no recommendation to record for this household' });
+    res.json(record);
+  }));
+
+  // Hand back a record and it will say whether the digest still matches. A
+  // reviewer should not have to take the system's word for its own output.
+  app.post('/api/book/records/verify', wrap(async (req, res) => {
+    res.json(verifyRecord(req.body?.record || req.body));
+  }));
+
   app.get('/api/health', wrap(async (_req, res) => {
     const store = await getStore();
     res.json({ ok: true, llm: llmInfo(), store: store.kind, version: process.env.APP_VERSION || 'dev' });
@@ -45,6 +105,7 @@ export function createApp() {
       categories: CATEGORY_LABELS,
       assetLabels: ASSET_LABELS,
       llm: llmInfo(),
+      adviser: ADVISER,
     });
   });
 
