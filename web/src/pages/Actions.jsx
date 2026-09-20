@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api.js';
-import { useAsync, Loading, ErrorNote, PageHead, ActionItem } from '../components/bits.jsx';
+import { useQuery, Loading, ErrorNote, PageHead, ActionItem } from '../components/bits.jsx';
+import { cacheKeys } from '../lib/cache-keys.js';
 
 const FILTERS = [
   ['all', 'All'],
@@ -12,10 +13,12 @@ const FILTERS = [
 ];
 
 export default function Actions({ profileId, assumptions, tryScenario }) {
-  const { data, error, loading } = useAsync(() => api.actions(profileId, assumptions), [profileId, JSON.stringify(assumptions)]);
+  const { data, error, loading, refetch } = useQuery(cacheKeys.actions(profileId, assumptions), () =>
+    api.actions(profileId, assumptions),
+  );
   const [filter, setFilter] = useState('all');
-  if (error) return <ErrorNote msg={error} />;
-  if (loading && !data) return <Loading h={420} label="Simulating each option against your plan…" />;
+  if (error) return <ErrorNote msg={error} onRetry={refetch} />;
+  if (loading) return <Loading shape="list" label="Simulating each option against your plan" />;
 
   const list = data.actions.filter((a) => filter === 'all' || a.category === filter);
   return (

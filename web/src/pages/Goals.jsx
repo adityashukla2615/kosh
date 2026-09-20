@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { api } from '../lib/api.js';
 import { inr, pct } from '../lib/format.js';
-import { useAsync, Loading, ErrorNote, PageHead, ProbBar, StatusChip, PriorityChip, MixBar } from '../components/bits.jsx';
+import { useQuery, Loading, ErrorNote, PageHead, ProbBar, StatusChip, PriorityChip, MixBar } from '../components/bits.jsx';
+import { cacheKeys } from '../lib/cache-keys.js';
 
 function Solver({ profileId, goal, assumptions, tryScenario }) {
   const [target, setTarget] = useState(0.8);
@@ -63,9 +64,11 @@ function Solver({ profileId, goal, assumptions, tryScenario }) {
 }
 
 export default function Goals({ profileId, assumptions, tryScenario }) {
-  const { data, error, loading } = useAsync(() => api.overview(profileId, assumptions), [profileId, JSON.stringify(assumptions)]);
-  if (error) return <ErrorNote msg={error} />;
-  if (loading && !data) return <Loading h={420} />;
+  const { data, error, loading, refetch } = useQuery(cacheKeys.overview(profileId, assumptions), () =>
+    api.overview(profileId, assumptions),
+  );
+  if (error) return <ErrorNote msg={error} onRetry={refetch} />;
+  if (loading) return <Loading shape="list" label="Planning each goal" />;
   const { goals } = data;
 
   return (

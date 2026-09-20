@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { api } from './lib/api.js';
+import { prefetch } from './lib/query.js';
+import { useKeyboard, focusRegistered } from './lib/keys.js';
+import { cacheKeys } from './lib/cache-keys.js';
 import Welcome from './pages/Welcome.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Overview from './pages/Overview.jsx';
@@ -21,6 +24,17 @@ const PAGES = [
   { id: 'review', label: 'Monthly review', C: Review },
   { id: 'assumptions', label: 'Assumptions', C: Assumptions },
 ];
+
+/** Warm whichever request the page about to be opened will make. */
+function warmPage(pageId, profileId, assumptions) {
+  if (pageId === 'overview' || pageId === 'goals') {
+    prefetch(cacheKeys.overview(profileId, assumptions), () => api.overview(profileId, assumptions));
+  } else if (pageId === 'actions') {
+    prefetch(cacheKeys.actions(profileId, assumptions), () => api.actions(profileId, assumptions));
+  } else if (pageId === 'spending') {
+    prefetch(cacheKeys.spending(profileId), () => api.spending(profileId));
+  }
+}
 
 const load = (k, d) => {
   try {
@@ -50,6 +64,8 @@ export default function App() {
   const [assumptions, setAssumptions] = useState(() => load('kosh.assumptions', {}));
   const [route, setRoute] = useState(readHash);
   const [pendingScenario, setPendingScenario] = useState(null);
+  const [showKeys, setShowKeys] = useState(false);
+  const mainRef = useRef(null);
 
   useEffect(() => {
     api.meta().then(setMeta).catch((e) => setMetaErr(e.message));
@@ -66,9 +82,53 @@ export default function App() {
   }, []);
 
   const pick = (p) => {
+    // Start the simulation before the shell renders, so the Overview usually has
+    // its numbers by the time the user is looking at it.
+    prefetch(cacheKeys.overview(p.id, assumptions), () => api.overview(p.id, assumptions));
     setProfile({ id: p.id, name: p.name, custom: !!p.custom });
     go('overview');
   };
+
+  // Warm the pages a user reaches for next. Browsers run this off the critical
+  // path, and a warm cache is what makes the nav feel instant rather than fetched.
+  useEffect(() => {
+    if (!profile) return;
+    const warm = () => {
+      prefetch(cacheKeys.overview(profile.id, assumptions), () => api.overview(profile.id, assumptions));
+      prefetch(cacheKeys.actions(profile.id, assumptions), () => api.actions(profile.id, assumptions));
+      prefetch(cacheKeys.spending(profile.id), () => api.spending(profile.id));
+    };
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 400));
+    const cancel = window.cancelIdleCallback || clearTimeout;
+    const handle = idle(warm);
+    return () => cancel(handle);
+  }, [profile, assumptions]);
+
+  const pageIndex = PAGES.findIndex((p) => p.id === route.page);
+
+  // Keep the tab title in step with where you are - it is how a second tab
+  // stays usable and how history entries read.
+  useEffect(() => {
+    const label = PAGES[pageIndex]?.label;
+    document.title = profile && label ? `${label} · ${profile.name} · Kosh` : 'Kosh · wealth, explained';
+  }, [pageIndex, profile]);
+
+  const keyHandlers = useMemo(
+    () => ({
+      digit: (i) => PAGES[i] && profile && go(PAGES[i].id),
+      help: () => setShowKeys((v) => !v),
+      search: () => focusRegistered(),
+      escape: () => {
+        if (showKeys) {
+          setShowKeys(false);
+          return true;
+        }
+        return false;
+      },
+    }),
+    [go, profile, showKeys],
+  );
+  useKeyboard(keyHandlers);
 
   // open the what-if page with levers pre-set (from Next steps / Goals)
   const tryScenario = (scenario) => {
@@ -95,6 +155,9 @@ export default function App() {
 
   return (
     <div className="shell">
+      <a className="skip btn" href="#main">
+        Skip to content
+      </a>
       <aside className="side">
         <div className="brand">
           <b>Kosh</b>
@@ -105,10 +168,20 @@ export default function App() {
           <span className="name">{profile.name}</span>
           <span className="small muted">{profile.custom ? 'Your numbers' : 'Sample household'} · switch</span>
         </button>
-        <nav className="nav">
+        <nav className="nav" aria-label="Sections">
           {PAGES.map((p, i) => (
-            <button key={p.id} className={p.id === page.id ? 'on' : ''} onClick={() => go(p.id)}>
-              <span className="k">{i + 1}</span>
+            <button
+              key={p.id}
+              className={p.id === page.id ? 'on' : ''}
+              aria-current={p.id === page.id ? 'page' : undefined}
+              onClick={() => go(p.id)}
+              // Hovering a link is a strong signal you are about to click it.
+              onPointerEnter={() => warmPage(p.id, profile.id, assumptions)}
+              onFocus={() => warmPage(p.id, profile.id, assumptions)}
+            >
+              <span className="k" aria-hidden="true">
+                {i + 1}
+              </span>
               {p.label}
             </button>
           ))}
@@ -126,9 +199,8 @@ export default function App() {
           <span className="tiny muted">Synthetic data · not investment advice</span>
         </div>
       </aside>
-      <main className="main">
+      <main className="main" id="main" ref={mainRef} tabIndex={-1} key={`${profile.id}:${page.id}`}>
         <Page
-          key={`${profile.id}:${page.id}`}
           profileId={profile.id}
           meta={meta}
           assumptions={assumptions}
@@ -139,6 +211,60 @@ export default function App() {
           clearPendingScenario={() => setPendingScenario(null)}
         />
       </main>
+      {showKeys && <Shortcuts pages={PAGES} onClose={() => setShowKeys(false)} />}
+    </div>
+  );
+}
+
+function Shortcuts({ pages, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => ref.current?.focus(), []);
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Keyboard shortcuts"
+        tabIndex={-1}
+        ref={ref}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="spread" style={{ marginBottom: 14 }}>
+          <h2>Keyboard</h2>
+          <button className="btn ghost sm" onClick={onClose}>
+            Close
+          </button>
+        </div>
+        <dl className="keys">
+          {pages.map((p, i) => (
+            <div key={p.id}>
+              <dt>
+                <kbd>{i + 1}</kbd>
+              </dt>
+              <dd>{p.label}</dd>
+            </div>
+          ))}
+          <div>
+            <dt>
+              <kbd>/</kbd>
+            </dt>
+            <dd>Jump to the input on this page</dd>
+          </div>
+          <div>
+            <dt>
+              <kbd>?</kbd>
+            </dt>
+            <dd>This list</dd>
+          </div>
+          <div>
+            <dt>
+              <kbd>Esc</kbd>
+            </dt>
+            <dd>Close</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }

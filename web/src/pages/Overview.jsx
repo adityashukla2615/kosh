@@ -1,13 +1,16 @@
 import { api } from '../lib/api.js';
 import { inr, pct, greeting, firstName } from '../lib/format.js';
-import { useAsync, Loading, ErrorNote, Pillars, ProbBar, StatusChip, ActionItem } from '../components/bits.jsx';
+import { useQuery, Loading, ErrorNote, Revalidating, Pillars, ProbBar, StatusChip, ActionItem } from '../components/bits.jsx';
+import { cacheKeys } from '../lib/cache-keys.js';
 import FanChart from '../components/FanChart.jsx';
 
 export default function Overview({ profileId, assumptions, go, tryScenario }) {
-  const { data, error, loading } = useAsync(() => api.overview(profileId, assumptions), [profileId, JSON.stringify(assumptions)]);
+  const { data, error, loading, revalidating, refetch } = useQuery(cacheKeys.overview(profileId, assumptions), () =>
+    api.overview(profileId, assumptions),
+  );
 
-  if (error) return <ErrorNote msg={error} />;
-  if (loading && !data) return <Loading h={420} label="Running the simulations…" />;
+  if (error) return <ErrorNote msg={error} onRetry={refetch} />;
+  if (loading) return <Loading shape="overview" label="Running the simulations" />;
 
   const { profile, summary: s, health, goals, projection, actions, actionCount } = data;
   const weakest = [...goals.goals].sort((a, b) => a.probability - b.probability)[0];
@@ -16,8 +19,9 @@ export default function Overview({ profileId, assumptions, go, tryScenario }) {
     <div className="stack-lg">
       <div className="page-head">
         <div>
-          <span className="caps">
+          <span className="caps row" style={{ gap: 12 }}>
             {greeting()}, {firstName(profile.name)}
+            <Revalidating on={revalidating} />
           </span>
           <h1 style={{ marginTop: 4 }}>
             {health.score >= 75 ? 'You’re in good shape.' : health.score >= 55 ? 'Solid base, a few gaps.' : 'A few things need attention.'}{' '}

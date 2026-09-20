@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { inr, pct } from '../lib/format.js';
-import { useAsync, Loading, ErrorNote, PageHead } from '../components/bits.jsx';
+import { useQuery, Loading, ErrorNote, PageHead } from '../components/bits.jsx';
+import { cacheKeys } from '../lib/cache-keys.js';
+import { invalidate } from '../lib/query.js';
 
 function Spark({ values }) {
   const max = Math.max(...values, 1);
@@ -16,8 +18,7 @@ function Spark({ values }) {
 }
 
 export default function Spending({ profileId }) {
-  const [version, setVersion] = useState(0);
-  const { data, error, loading } = useAsync(() => api.spending(profileId), [profileId, version]);
+  const { data, error, loading, refetch } = useQuery(cacheKeys.spending(profileId), () => api.spending(profileId));
   const [msg, setMsg] = useState(null);
   const fileRef = useRef();
 
@@ -28,7 +29,9 @@ export default function Spending({ profileId }) {
       const text = await file.text();
       const r = await api.importCsv(profileId, text);
       setMsg({ ok: true, text: `Read ${r.imported} transactions${r.skipped ? ` (skipped ${r.skipped} rows we couldn't parse)` : ''}. Everything on this page and in your plan now uses them.` });
-      setVersion((v) => v + 1);
+      invalidate(`overview:${profileId}`);
+      invalidate(`actions:${profileId}`);
+      refetch();
     } catch (e) {
       setMsg({ ok: false, text: e.message });
     }
@@ -38,11 +41,13 @@ export default function Spending({ profileId }) {
   const reset = async () => {
     await api.clearImport(profileId);
     setMsg(null);
-    setVersion((v) => v + 1);
+    invalidate(`overview:${profileId}`);
+    invalidate(`actions:${profileId}`);
+    refetch();
   };
 
-  if (error) return <ErrorNote msg={error} />;
-  if (loading && !data) return <Loading h={420} />;
+  if (error) return <ErrorNote msg={error} onRetry={refetch} />;
+  if (loading) return <Loading shape="list" label="Reading your transactions" />;
 
   const maxAvg = Math.max(...data.categories.map((c) => c.monthlyAvg), 1);
 

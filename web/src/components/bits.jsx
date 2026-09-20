@@ -1,32 +1,125 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { inr, pct, STATUS_LABEL, PRIORITY_LABEL } from '../lib/format.js';
+import { fetchQuery, _cache, _subscribe } from '../lib/query.js';
 
-// fetch-on-deps with stale response protection
-export function useAsync(fn, deps) {
-  const [state, setState] = useState({ data: null, error: null, loading: true });
-  const seq = useRef(0);
+/**
+ * Read a cached query. Returns cached data immediately when there is any, and
+ * refreshes in the background - so moving between pages is instant after the
+ * first visit, and a failed refresh leaves the last good numbers on screen
+ * rather than blanking them.
+ */
+export function useQuery(key, fn) {
+  const [, rerender] = useReducer((n) => n + 1, 0);
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+
   useEffect(() => {
-    const n = ++seq.current;
-    setState((s) => ({ ...s, loading: true, error: null }));
-    fn()
-      .then((data) => n === seq.current && setState({ data, error: null, loading: false }))
-      .catch((error) => n === seq.current && setState({ data: null, error: error.message, loading: false }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-  return state;
+    const off = _subscribe(key, rerender);
+    fetchQuery(key, () => fnRef.current()).catch(() => {});
+    return off;
+  }, [key]);
+
+  const entry = _cache.get(key) || {};
+  const hasData = entry.data !== undefined;
+  return {
+    data: entry.data ?? null,
+    // A stale-but-present payload beats an error banner; only surface the error
+    // when we have nothing to show.
+    error: hasData ? null : entry.error?.message ?? null,
+    loading: !hasData && !entry.error,
+    revalidating: !!entry.promise && hasData,
+    refetch: () => fetchQuery(key, () => fnRef.current(), { force: true }).catch(() => {}),
+  };
 }
 
-export function Loading({ h = 220, label }) {
+/**
+ * Skeletons shaped like the page they stand in for, so nothing jumps when the
+ * real content lands. `shape` names the layout, not a pixel height.
+ */
+export function Loading({ shape = 'page', label }) {
+  const bar = (h, w = '100%') => <div className="skeleton" style={{ height: h, width: w }} />;
   return (
-    <div className="stack">
-      {label && <span className="small muted">{label}</span>}
-      <div className="skeleton" style={{ height: h }} />
+    <div className="stack-lg loading-shape" aria-busy="true" aria-live="polite">
+      <span className="sr-only">{label || 'Loading'}</span>
+      {shape === 'overview' && (
+        <>
+          <div className="stack" style={{ gap: 8 }}>
+            {bar(13, 180)}
+            {bar(30, '62%')}
+          </div>
+          <div className="kpis">
+            {[0, 1, 2, 3].map((i) => (
+              <div className="kpi stack" key={i} style={{ gap: 8 }}>
+                {bar(11, 84)}
+                {bar(26, 110)}
+                {bar(11, 132)}
+              </div>
+            ))}
+          </div>
+          <div className="grid g-main">
+            <div className="card stack">
+              {bar(18, 200)}
+              {bar(260)}
+            </div>
+            <div className="card stack">
+              {bar(18, 140)}
+              {bar(56, 120)}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="stack" style={{ gap: 6 }}>
+                  {bar(12, `${70 - i * 6}%`)}
+                  {bar(6)}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+      {shape === 'list' && (
+        <>
+          {bar(30, '46%')}
+          {[0, 1, 2].map((i) => (
+            <div className="card stack" key={i}>
+              {bar(16, '40%')}
+              {bar(12, '72%')}
+              {bar(10)}
+            </div>
+          ))}
+        </>
+      )}
+      {shape === 'page' && (
+        <>
+          {bar(30, '46%')}
+          <div className="card stack">
+            {bar(16, '36%')}
+            {bar(220)}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-export function ErrorNote({ msg }) {
-  return <div className="banner err">{msg}</div>;
+export function ErrorNote({ msg, onRetry }) {
+  return (
+    <div className="banner err spread" role="alert">
+      <span>{msg}</span>
+      {onRetry && (
+        <button className="btn sm" onClick={onRetry}>
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Quiet marker that cached numbers are being refreshed behind the scenes. */
+export function Revalidating({ on }) {
+  return on ? (
+    <span className="revalidating" aria-hidden="true">
+      <i />
+      Recalculating
+    </span>
+  ) : null;
 }
 
 export function PageHead({ title, sub, right }) {
@@ -91,7 +184,13 @@ export function Pillars({ pillars }) {
   return (
     <div>
       {pillars.map((p) => (
-        <div className="pillar" key={p.id} onClick={() => setOpen(open === p.id ? null : p.id)}>
+        <button
+          type="button"
+          className="pillar"
+          key={p.id}
+          aria-expanded={open === p.id}
+          onClick={() => setOpen(open === p.id ? null : p.id)}
+        >
           <span>
             {p.label} <span className="small muted">· {p.value}</span>
           </span>
@@ -103,10 +202,10 @@ export function Pillars({ pillars }) {
             <i style={{ width: `${(p.points / p.weight) * 100}%` }} />
           </div>
           {open === p.id && <div className="detail">{p.detail}</div>}
-        </div>
+        </button>
       ))}
       <p className="tiny muted" style={{ marginTop: 8 }}>
-        Tap a row to see how it’s scored.
+        Select a row to see how it’s scored.
       </p>
     </div>
   );
@@ -146,7 +245,7 @@ export function ActionItem({ a, onTry, defaultOpen = false, compact = false }) {
         </div>
         {!compact && (
           <div className="row" style={{ marginTop: 8 }}>
-            <button className="btn ghost sm" onClick={() => setOpen(!open)}>
+            <button className="btn ghost sm" aria-expanded={open} onClick={() => setOpen(!open)}>
               {open ? 'Hide reasoning' : 'Why, how & assumptions'}
             </button>
             {a.scenario && onTry && (

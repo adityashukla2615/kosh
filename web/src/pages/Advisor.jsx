@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { PageHead, Trace } from '../components/bits.jsx';
+import { registerFocusTarget } from '../lib/keys.js';
 
 const STARTERS = [
   'What should I do first?',
@@ -19,6 +20,14 @@ export default function Advisor({ profileId, meta, assumptions }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const endRef = useRef();
+  const inputRef = useRef();
+
+  // Claim `/` on this page, and put the cursor in the box on arrival - nobody
+  // should have to reach for the mouse to ask a question.
+  useEffect(() => {
+    inputRef.current?.focus();
+    return registerFocusTarget(inputRef);
+  }, []);
 
   useEffect(() => {
     memory.set(profileId, msgs);
@@ -56,7 +65,8 @@ export default function Advisor({ profileId, meta, assumptions }) {
         }
       />
       <div className="chat">
-        <div className="msgs">
+        {/* Announce answers: without this a screen reader gets silence when one lands. */}
+        <div className="msgs" role="log" aria-live="polite" aria-atomic="false">
           {!msgs.length && (
             <div className="card" style={{ maxWidth: 640 }}>
               <h3>Ask anything about your money.</h3>
@@ -111,7 +121,14 @@ export default function Advisor({ profileId, meta, assumptions }) {
             send();
           }}
         >
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. What if I get a 15% raise?" disabled={busy} />
+          <input
+            ref={inputRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Ask anything - press / from anywhere to get here"
+            aria-label="Ask Kosh a question"
+            disabled={busy}
+          />
           <button className="btn primary" disabled={busy || !text.trim()}>
             Ask
           </button>
