@@ -3,6 +3,7 @@ import { api } from './lib/api.js';
 import { prefetch } from './lib/query.js';
 import { useKeyboard, focusRegistered } from './lib/keys.js';
 import { cacheKeys } from './lib/cache-keys.js';
+import { ErrorBoundary, ConnectionBanner } from './components/system.jsx';
 import Welcome from './pages/Welcome.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Overview from './pages/Overview.jsx';
@@ -200,16 +201,19 @@ export default function App() {
         </div>
       </aside>
       <main className="main" id="main" ref={mainRef} tabIndex={-1} key={`${profile.id}:${page.id}`}>
-        <Page
-          profileId={profile.id}
-          meta={meta}
-          assumptions={assumptions}
-          setAssumptions={setAssumptions}
-          go={go}
-          tryScenario={tryScenario}
-          pendingScenario={pendingScenario}
-          clearPendingScenario={() => setPendingScenario(null)}
-        />
+        <ConnectionBanner />
+        <ErrorBoundary key={page.id}>
+          <Page
+            profileId={profile.id}
+            meta={meta}
+            assumptions={assumptions}
+            setAssumptions={setAssumptions}
+            go={go}
+            tryScenario={tryScenario}
+            pendingScenario={pendingScenario}
+            clearPendingScenario={() => setPendingScenario(null)}
+          />
+        </ErrorBoundary>
       </main>
       {showKeys && <Shortcuts pages={PAGES} onClose={() => setShowKeys(false)} />}
     </div>
@@ -218,7 +222,34 @@ export default function App() {
 
 function Shortcuts({ pages, onClose }) {
   const ref = useRef(null);
-  useEffect(() => ref.current?.focus(), []);
+
+  useEffect(() => {
+    const node = ref.current;
+    const previous = document.activeElement;
+    node?.focus();
+
+    // Trap Tab inside the sheet and hand focus back where it came from.
+    const onKey = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        last.focus();
+        e.preventDefault();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus();
+        e.preventDefault();
+      }
+    };
+
+    node?.addEventListener('keydown', onKey);
+    return () => {
+      node?.removeEventListener('keydown', onKey);
+      previous?.focus?.();
+    };
+  }, []);
   return (
     <div className="overlay" onClick={onClose}>
       <div

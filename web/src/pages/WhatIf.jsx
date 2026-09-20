@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { inr, pct, signed } from '../lib/format.js';
-import { Loading, ErrorNote, PageHead, ProbBar } from '../components/bits.jsx';
+import { Loading, ErrorNote, PageHead, ProbBar, Revalidating } from '../components/bits.jsx';
 import FanChart from '../components/FanChart.jsx';
 
 const Y = new Date().getFullYear();
@@ -32,6 +32,8 @@ export default function WhatIf({ profileId, meta, assumptions, pendingScenario, 
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
   const timer = useRef();
+  const seq = useRef(0);
+  const abort = useRef(null);
 
   useEffect(() => {
     if (pendingScenario) clearPendingScenario();
@@ -40,22 +42,40 @@ export default function WhatIf({ profileId, meta, assumptions, pendingScenario, 
 
   const scenario = useMemo(() => ({ ...s, bigPurchase: purchase && purchase.amount > 0 ? purchase : null }), [s, purchase]);
 
-  // debounce so dragging a slider doesn't fire 40 simulations
+  // Dragging a slider must not fire a simulation per pixel, and the answers
+  // must not race: a slow request started three drags ago would otherwise land
+  // last and show results for levers the user has already moved past. Each run
+  // takes a sequence number and aborts the one before it.
   useEffect(() => {
     clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
+    timer.current = setTimeout(() => {
+      const n = ++seq.current;
+      abort.current?.abort();
+      const ctrl = new AbortController();
+      abort.current = ctrl;
       setBusy(true);
-      try {
-        setRes(await api.simulate(profileId, scenario, assumptions));
-        setErr(null);
-      } catch (e) {
-        setErr(e.message);
-      } finally {
-        setBusy(false);
-      }
+
+      api
+        .simulate(profileId, scenario, assumptions, ctrl.signal)
+        .then((data) => {
+          if (n !== seq.current) return; // superseded
+          setRes(data);
+          setErr(null);
+        })
+        .catch((e) => {
+          if (n !== seq.current || ctrl.signal.aborted) return;
+          setErr(e.message);
+        })
+        .finally(() => {
+          if (n === seq.current) setBusy(false);
+        });
     }, 280);
+
     return () => clearTimeout(timer.current);
   }, [profileId, scenario, assumptions]);
+
+  // Stop the in-flight simulation when the page goes away.
+  useEffect(() => () => abort.current?.abort(), []);
 
   const levers = meta?.levers || {};
   const set = (k, v) => setS((x) => ({ ...x, [k]: v }));
@@ -89,11 +109,22 @@ export default function WhatIf({ profileId, meta, assumptions, pendingScenario, 
             const max = k === 'moveIdleCash' ? 2000000 : L.max;
             return (
               <div className="lever" key={k}>
-                <label>
+                <label htmlFor={`lever-${k}`}>
                   <span>{L.label}</span>
                   <b>{fmtLever(k, v, L.unit)}</b>
                 </label>
-                <input type="range" min={L.min} max={max} step={k === 'moveIdleCash' ? 25000 : L.step} value={v} onChange={(e) => set(k, Number(e.target.value))} />
+                <input
+                  id={`lever-${k}`}
+                  type="range"
+                  min={L.min}
+                  max={max}
+                  step={k === 'moveIdleCash' ? 25000 : L.step}
+                  value={v}
+                  // Without this a screen reader reads the raw number: "1000000"
+                  // rather than "10 lakh moved out of idle cash".
+                  aria-valuetext={`${L.label}: ${fmtLever(k, v, L.unit)}`}
+                  onChange={(e) => set(k, Number(e.target.value))}
+                />
               </div>
             );
           })}
@@ -103,10 +134,10 @@ export default function WhatIf({ profileId, meta, assumptions, pendingScenario, 
               <span>One-off purchase</span>
               <b>{purchase?.amount ? inr(purchase.amount) : 'none'}</b>
             </label>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-              <input className="inline-input" style={{ width: '100%', textAlign: 'left', fontFamily: 'var(--sans)' }} placeholder="What" value={purchase?.label || ''} onChange={(e) => setPurchase((p) => ({ inYears: 1, amount: 0, ...p, label: e.target.value }))} />
-              <input className="inline-input" style={{ width: '100%' }} type="number" placeholder="₹" value={purchase?.amount || ''} onChange={(e) => setPurchase((p) => ({ label: 'Purchase', inYears: 1, ...p, amount: Number(e.target.value) }))} />
-              <select className="inline-input" style={{ width: '100%' }} value={purchase?.inYears ?? 1} onChange={(e) => setPurchase((p) => ({ label: 'Purchase', amount: 0, ...p, inYears: Number(e.target.value) }))}>
+            <div className="purchase-grid">
+              <input className="inline-input text" placeholder="What" value={purchase?.label || ''} onChange={(e) => setPurchase((p) => ({ inYears: 1, amount: 0, ...p, label: e.target.value }))} />
+              <input className="inline-input" type="number" placeholder="₹" value={purchase?.amount || ''} onChange={(e) => setPurchase((p) => ({ label: 'Purchase', inYears: 1, ...p, amount: Number(e.target.value) }))} />
+              <select className="inline-input" value={purchase?.inYears ?? 1} onChange={(e) => setPurchase((p) => ({ label: 'Purchase', amount: 0, ...p, inYears: Number(e.target.value) }))}>
                 {[0, 1, 2, 3, 4, 5, 7, 10].map((y) => (
                   <option key={y} value={y}>
                     {y === 0 ? 'now' : `${Y + y}`}
@@ -120,12 +151,14 @@ export default function WhatIf({ profileId, meta, assumptions, pendingScenario, 
         <div className="stack-lg">
           {err && <ErrorNote msg={err} />}
           {!res ? (
-            <Loading h={360} />
+            <Loading shape="page" label="Simulating this scenario" />
           ) : (
             <>
-              <div className="card" style={{ opacity: busy ? 0.6 : 1, transition: 'opacity .15s' }}>
+              <div className="card">
                 <div className="card-head">
-                  <h2>{touched ? 'What changes' : 'Your plan as it stands'}</h2>
+                  <h2>
+                    {touched ? 'What changes' : 'Your plan as it stands'} <Revalidating on={busy} />
+                  </h2>
                   {touched && (
                     <div className="row small">
                       <span className="row" style={{ gap: 4 }}>
