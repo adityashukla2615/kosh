@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { generateBook, getHousehold, BOOK_SEED } from '../src/data/book.js';
 import { screenBook, screenHousehold } from '../src/engine/surveillance.js';
 import { buildSuitabilityRecord, verifyRecord } from '../src/engine/suitability.js';
-import { resolveAssumptions } from '../src/engine/assumptions.js';
+import { resolveAssumptions, DEFAULT_ASSUMPTIONS } from '../src/engine/assumptions.js';
 import { evaluate } from '../src/engine/analysis.js';
 import { createApp } from '../src/app.js';
 
@@ -199,4 +199,36 @@ test('a household from the book works on every existing surface', async () => {
   } finally {
     server.close();
   }
+});
+
+test('the shipped screening still matches what the engine produces now', async () => {
+  // The default book is computed at build time and served from disk. That is
+  // only safe while it agrees with the engine: change a threshold, forget to
+  // rebuild, and the book would quietly serve yesterday's judgement. This is
+  // the guard, and it fails loudly rather than drifting.
+  const { precomputedBook } = await import('../src/services/book.js');
+  const shipped = precomputedBook();
+
+  if (!shipped) {
+    // Running from source without a build is legitimate; the service falls back
+    // to computing. Nothing to check.
+    return;
+  }
+
+  const fresh = screenBook(generateBook(), DEFAULT_ASSUMPTIONS, { queueSize: 12 });
+
+  assert.equal(shipped.stats.households, fresh.stats.households, 'same book size');
+  assert.equal(shipped.stats.flagged, fresh.stats.flagged, 'same number flagged — rebuild with `npm run build:book`');
+  assert.deepEqual(
+    shipped.queue.map((r) => r.id),
+    fresh.queue.map((r) => r.id),
+    'same households in the queue, in the same order — rebuild with `npm run build:book`',
+  );
+  assert.deepEqual(
+    shipped.structural.map((s) => s.code),
+    fresh.structural.map((s) => s.code),
+    'same structural findings — rebuild with `npm run build:book`',
+  );
+  // Spot-check the substance, not just the shape.
+  assert.deepEqual(shipped.queue[0].flags.map((f) => f.code), fresh.queue[0].flags.map((f) => f.code), 'top household has the same findings');
 });

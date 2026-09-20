@@ -12,7 +12,8 @@
     "dev:api": "npm run dev --workspace api",
     "dev:web": "npm run dev --workspace web",
     "test": "npm test --workspace api",
-    "build": "npm run build --workspace web",
-    "deploy:hf": "bash scripts/deploy-hf.sh"
+    "build": "npm run build:book && npm run build --workspace web",
+    "deploy:hf": "bash scripts/deploy-hf.sh",
+    "build:book": "node scripts/build-book.mjs"
   }
 }

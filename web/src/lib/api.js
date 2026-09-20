@@ -133,6 +133,8 @@ export const api = {
   record: (id, assumptions) =>
     request(`/book/households/${id}/record`, { method: 'POST', body: { assumptions } }),
   verifyRecord: (record) => request('/book/records/verify', { method: 'POST', body: { record } }),
+  bookStatus: (assumptions) =>
+    request(`/book/status?${new URLSearchParams(Object.keys(assumptions || {}).length ? { assumptions: JSON.stringify(assumptions) } : {})}`),
   health: () => request('/health'),
   createProfile: (form) => request('/profiles', { method: 'POST', body: form }),
   overview: (id, assumptions) => request(`/profiles/${id}/overview`, { method: 'POST', body: { assumptions } }),

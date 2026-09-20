@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { useQuery, Loading, ErrorNote } from '../components/bits.jsx';
 import { cacheKeys } from '../lib/cache-keys.js';
@@ -13,9 +13,12 @@ export default function Book({ meta, assumptions, onOpenHousehold }) {
   const [open, setOpen] = useState(null);
 
   if (error) return <ErrorNote msg={error} onRetry={refetch} />;
-  if (loading) return <Loading shape="list" label="Screening the book" />;
+  // Default assumptions are screened at build time and arrive immediately.
+  // Changing one is a real question the engine has not answered yet, so say so
+  // and show it working rather than showing a skeleton for forty seconds.
+  if (loading) return <Screening assumptions={assumptions} />;
 
-  const { stats, structural, queue, byFlag, bySegment, computeMs } = data;
+  const { stats, structural, queue, byFlag, bySegment, computeMs, precomputed } = data;
   const adviser = meta?.adviser;
 
   return (
@@ -31,7 +34,8 @@ export default function Book({ meta, assumptions, onOpenHousehold }) {
         <div className="compute" title="Every household in this book was simulated to produce this page.">
           <span className="num">{stats.simulationsRun.toLocaleString('en-IN')}</span>
           <span className="tiny muted">
-            market paths · {stats.pathsPerHousehold} per household · screened in {(computeMs / 1000).toFixed(1)}s
+            market paths · {stats.pathsPerHousehold} per household ·{' '}
+            {precomputed ? `screened at build in ${(computeMs / 1000).toFixed(1)}s` : `screened in ${(computeMs / 1000).toFixed(1)}s`}
           </span>
         </div>
       </header>
@@ -168,6 +172,49 @@ export default function Book({ meta, assumptions, onOpenHousehold }) {
         Every household here is synthetic and generated from a fixed seed, so this book is the same book on every run. The screening is the same
         engine the household pages use — no separate model, no scoring shortcut.
       </p>
+    </div>
+  );
+}
+
+/** Progress for a screening the engine is genuinely running now. */
+function Screening({ assumptions }) {
+  const [p, setP] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const s = await api.bookStatus(assumptions);
+        if (alive) setP(s);
+      } catch {
+        /* the book request itself reports failure; this is only the commentary */
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1200);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [assumptions]);
+
+  const done = p?.done ?? 0;
+  const total = p?.total ?? 0;
+  const share = total ? done / total : 0;
+
+  return (
+    <div className="card stack screening" aria-live="polite">
+      <b>Re-screening the book on your assumptions</b>
+      <p className="small muted">
+        Every household is being simulated again. Nothing is cached for assumptions the engine has not seen before, which is the point of being
+        able to change them.
+      </p>
+      <div className="bar" style={{ height: 8 }}>
+        <i style={{ width: `${Math.max(3, share * 100)}%` }} />
+      </div>
+      <span className="small muted num">
+        {total ? `${done} of ${total} households` : 'starting…'}
+      </span>
     </div>
   );
 }

@@ -532,3 +532,5 @@ kbd {
   .adviser { padding: 0 16px 56px; }
   .entry { flex-direction: column; align-items: flex-start; }
 }
+.screening { max-width: 560px; }
+.screening .bar > i { transition: width 0.4s ease; }

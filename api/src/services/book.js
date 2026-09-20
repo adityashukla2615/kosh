@@ -6,9 +6,24 @@
 // the operation that invalidates every number in the book - and being able to
 // change one and watch the whole book move is the point of the Assumptions page.
 
+import { createRequire } from 'node:module';
 import { generateBook } from '../data/book.js';
 import { screenBook } from '../engine/surveillance.js';
 import { DEFAULT_ASSUMPTIONS } from '../engine/assumptions.js';
+
+// The default screening is a pure function of a fixed seed and fixed
+// assumptions, so it is computed at build time (scripts/build-book.mjs) and
+// read from disk. On a small shared instance the alternative is about forty
+// seconds of arithmetic, paid by whoever opens the book first.
+//
+// If the file is missing - someone running from source without building - the
+// service falls back to computing it, so nothing breaks, it is just slower.
+let precomputed = null;
+try {
+  precomputed = createRequire(import.meta.url)('../data/book-screened.json');
+} catch {
+  console.warn('[kosh] no precomputed book found; screening at runtime. Run `npm run build:book`.');
+}
 
 const cache = new Map();
 const inFlight = new Map();
@@ -16,8 +31,11 @@ const MAX_ENTRIES = 4;
 
 const keyOf = (a) => JSON.stringify(Object.entries(a).sort(([x], [y]) => x.localeCompare(y)));
 
+const isDefault = (a) => keyOf(a) === keyOf(DEFAULT_ASSUMPTIONS);
+
 export function bookStatus(a) {
   const key = keyOf(a);
+  if (precomputed && isDefault(a)) return { state: 'ready', precomputed: true, households: precomputed.stats.households };
   if (cache.has(key)) return { state: 'ready', ...cache.get(key).meta };
   if (inFlight.has(key)) return { state: 'computing', ...(inFlight.get(key).progress || {}) };
   return { state: 'cold' };
@@ -28,6 +46,10 @@ export function bookStatus(a) {
  * computation rather than each starting their own.
  */
 export function getScreenedBook(a, { queueSize = 12 } = {}) {
+  // Default assumptions: served from the build. Anything else is a genuine
+  // question the engine has not answered yet, and is computed.
+  if (precomputed && isDefault(a) && queueSize === 12) return Promise.resolve(precomputed);
+
   const key = keyOf(a);
   const hit = cache.get(key);
   if (hit) return Promise.resolve(hit.value);
@@ -68,5 +90,11 @@ export function getScreenedBook(a, { queueSize = 12 } = {}) {
  * open the book is not the one who pays for it.
  */
 export function warmBook() {
+  if (precomputed) return; // nothing to warm - it shipped with the build
   getScreenedBook(DEFAULT_ASSUMPTIONS).catch((err) => console.error('[kosh] book warm-up failed', err.message));
+}
+
+/** The precomputed payload, for the test that checks it has not gone stale. */
+export function precomputedBook() {
+  return precomputed;
 }

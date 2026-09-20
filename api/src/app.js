@@ -60,6 +60,7 @@ export function createApp() {
       generatedAt: book.generatedAt,
       computeMs: book.computeMs,
       rows: full ? book.rows : undefined,
+      precomputed: !!book.precomputed,
       assumptions: flattenAssumptions(a),
     });
   }));
