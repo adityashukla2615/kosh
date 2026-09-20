@@ -547,3 +547,33 @@ kbd {
   .outcome-head { font-size: 18px; }
   .outcome-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
+
+/* "how this works" - the product explaining itself, in the user's own numbers */
+.howto { max-width: 760px; }
+.howstep { display: grid; grid-template-columns: 42px 1fr; gap: 18px; padding: 22px 0; border-top: 1px solid var(--line); }
+.howstep:first-of-type { border-top: 0; padding-top: 4px; }
+.howstep-n { font-size: 26px; color: var(--line-2); line-height: 1; }
+.howstep-body h2 { font-size: 18px; margin-bottom: 8px; }
+.howstep-body p { margin-bottom: 8px; }
+.howstep-body p:last-child { margin-bottom: 0; }
+.linkish { all: unset; cursor: pointer; color: var(--green); text-decoration: underline; text-underline-offset: 2px; }
+.linkish:hover { color: #174a3b; }
+.linkish:focus-visible { outline: 2px solid var(--green-2); outline-offset: 2px; border-radius: 3px; }
+.callout { background: #f7f3e9; border-left: 3px solid var(--green); padding: 12px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; }
+/* only the callout heading is a block; inline bolds inside the body must stay inline
+   or trailing punctuation gets orphaned onto its own line. */
+.callout > b:first-child { display: block; margin-bottom: 4px; }
+.figrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; margin-top: 10px; }
+.figrow .v { display: block; font-size: 17px; margin-top: 2px; }
+.toolgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 10px; }
+.toolgrid > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 7px; }
+.toolgrid code { font-family: var(--mono); font-size: 12px; }
+.pipeline-list { margin: 8px 0 0; padding-left: 20px; }
+.pipeline-list li { margin: 4px 0; }
+.limits { margin-top: 26px; }
+.limits ul { margin: 8px 0 0; padding-left: 18px; }
+.limits li { margin: 6px 0; }
+@media (max-width: 600px) {
+  .howstep { grid-template-columns: 28px 1fr; gap: 12px; }
+  .howstep-n { font-size: 20px; }
+}

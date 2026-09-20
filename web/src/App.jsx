@@ -14,6 +14,7 @@ import Spending from './pages/Spending.jsx';
 import Advisor from './pages/Advisor.jsx';
 import Review from './pages/Review.jsx';
 import Assumptions from './pages/Assumptions.jsx';
+import HowItWorks from './pages/HowItWorks.jsx';
 import Book from './pages/Book.jsx';
 import Record from './pages/Record.jsx';
 
@@ -26,6 +27,7 @@ const PAGES = [
   { id: 'ask', label: 'Ask Kosh', C: Advisor },
   { id: 'review', label: 'Monthly review', C: Review },
   { id: 'assumptions', label: 'Assumptions', C: Assumptions },
+  { id: 'how', label: 'How this works', C: HowItWorks },
 ];
 
 /** Warm whichever request the page about to be opened will make. */
