@@ -1,0 +1,70 @@
+name: Pages
+
+# Publishes the React app to GitHub Pages.
+#
+# The API cannot live here - GitHub Pages serves static files only, and Kosh's
+# simulations, agent pipeline and suitability records are server-side. The app
+# is built pointing at the deployed API instead, which is why the origin policy
+# in api/src/app.js names *.github.io explicitly.
+#
+# The practical win: the UI is served from GitHub's CDN and appears instantly
+# even while the API host is asleep, and the app already knows how to say
+# "waking the server" while it comes back.
+#
+# One-time setup: repository Settings -> Pages -> Source: "GitHub Actions".
+# Optional repository variable API_BASE overrides the API URL below.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two Pages deploys race; queue rather than cancel so main always
+# ends up published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the app for Pages
+        env:
+          # Pages serves this repo under /<repo>/, so assets need that prefix.
+          BASE_PATH: /${{ github.event.repository.name }}/
+          # Cross-origin API. The app falls back to same-origin /api when unset,
+          # which is what the container build uses.
+          VITE_API_BASE: ${{ vars.API_BASE || 'https://kosh-2w6y.onrender.com/api' }}
+        run: npm run build
+
+      - name: Tell Pages not to run Jekyll over the build
+        run: touch web/dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

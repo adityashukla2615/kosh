@@ -23,7 +23,27 @@ const ADVISER = { name: 'Priya Menon', firm: 'Meridian Wealth Partners', licence
 
 export function createApp() {
   const app = express();
-  app.use(cors());
+  // The container serves the app and the API from one origin, so CORS is not
+  // needed there. The GitHub Pages build is a genuine cross-origin caller, so
+  // the allowed origins are named rather than left open: a public API that
+  // reflects any origin is a habit worth not getting into, even on a demo.
+  const ALLOWED_ORIGINS = [
+    /^https?:\/\/localhost(:\d+)?$/,
+    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+    /^https:\/\/[a-z0-9-]+\.github\.io$/i, // the GitHub Pages build
+    /^https:\/\/[a-z0-9-]+\.onrender\.com$/i,
+    /^https:\/\/[a-z0-9-]+\.hf\.space$/i,
+  ];
+
+  app.use(
+    cors({
+      origin(origin, cb) {
+        // Same-origin requests, curl and server-to-server calls send no Origin.
+        if (!origin) return cb(null, true);
+        cb(null, ALLOWED_ORIGINS.some((re) => re.test(origin)));
+      },
+    }),
+  );
   app.use(express.json({ limit: '1mb' }));
   app.use(express.text({ type: ['text/csv', 'text/plain'], limit: '2mb' }));
 
