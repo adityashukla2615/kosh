@@ -496,8 +496,7 @@ explains rather than hiding.
   and no account model. Production would need Cognito in front, the Function URL switched to
   IAM auth, and CloudFront OAC — called out here rather than left to be discovered.
 - **Secrets never enter the repository.** `ANTHROPIC_API_KEY` is a host-level secret
-  (`sync: false` in `render.yaml`, IAM on Bedrock). The Pages build receives only the API
-  URL, which is public anyway.
+  (`sync: false` in `render.yaml`, IAM on Bedrock).
 - **No product recommendations.** A compliance stage strips issuer and scheme names from
   generated text, and the suitability record asserts it as a check.
 - **Input limits.** Chat messages are truncated at 1,500 characters; CSV imports are capped at

@@ -151,8 +151,8 @@ render.yaml     blueprint for the live demo (one Docker service)
 The live demo is one Docker service on Render - API and web app on a single origin, from
 `render.yaml` at the root: <https://kosh-2w6y.onrender.com>. It runs the offline planner, so it costs nothing
 and needs no key; putting Claude behind it is a secret and a variable in the dashboard.
-The React app is also published to GitHub Pages, which serves it from a CDN so the UI
-appears immediately even while the API host is waking.
+The app and the API are one container on one origin, so there is no second deployment
+target and no CORS to configure.
 
 AWS is the architecture this was designed for and `infra/template.yaml` is real (CI lints it
 on every push): `sam build && sam deploy --guided` from `infra/`, then sync `web/dist` to the

@@ -75,18 +75,6 @@ Notes:
 - The service name in `render.yaml` decides the URL (`kosh` -> `kosh.onrender.com`). Rename it
   there if that host is taken.
 
-### The app is also on GitHub Pages
-
-`.github/workflows/pages.yml` builds the React app and publishes it to Pages on every push
-to `main`. The API stays here on Render - Pages serves static files only - so the Pages build
-is given the API's URL at build time and the API's origin policy allows `*.github.io`.
-
-Worth having: the UI comes off GitHub's CDN and renders immediately even when this service is
-asleep, so the wait lands on a screen that explains itself rather than on a blank page.
-
-One-time setup: repository **Settings → Pages → Source: "GitHub Actions"**. Override the API
-URL with a repository variable `API_BASE` if the service is ever renamed.
-
 ## 4. AWS (the architecture this was designed for)
 
 `infra/template.yaml` is the production target and CI lints it on every push. The live

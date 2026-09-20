@@ -24,15 +24,13 @@ const ADVISER = { name: 'Priya Menon', firm: 'Meridian Wealth Partners', licence
 export function createApp() {
   const app = express();
   // The container serves the app and the API from one origin, so CORS is not
-  // needed there. The GitHub Pages build is a genuine cross-origin caller, so
-  // the allowed origins are named rather than left open: a public API that
-  // reflects any origin is a habit worth not getting into, even on a demo.
+  // strictly needed - but `cors()` with no arguments reflects whatever Origin it
+  // is sent, which is a bad default to leave in a public API. The origins that
+  // may legitimately call this are named instead.
   const ALLOWED_ORIGINS = [
     /^https?:\/\/localhost(:\d+)?$/,
     /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
-    /^https:\/\/[a-z0-9-]+\.github\.io$/i, // the GitHub Pages build
     /^https:\/\/[a-z0-9-]+\.onrender\.com$/i,
-    /^https:\/\/[a-z0-9-]+\.hf\.space$/i,
   ];
 
   app.use(
