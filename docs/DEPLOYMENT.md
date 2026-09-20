@@ -30,16 +30,27 @@ Open http://localhost:8787 - Express serves both the API and the built app.
 
 Render runs the same container as section 2: Express serving the API and the built React app
 on one origin. Free plan, no card. [`render.yaml`](../render.yaml) at the repo root is the
-blueprint - it names the Dockerfile, the health check and the one secret Render should ask
-for rather than read from git.
+blueprint - it names the Dockerfile, the health check and the environment.
 
 **Setup**
 
 1. <https://render.com> -> sign in with GitHub -> **New** -> **Blueprint** -> pick this repo.
-2. Render reads `render.yaml` and shows one service, `kosh`. It prompts for
-   `ANTHROPIC_API_KEY` because that var is marked `sync: false`. Paste the key there.
-   Leave it blank to run the demo on the offline planner instead - nothing breaks.
+2. Render reads `render.yaml` and shows one service, `kosh`. Nothing to fill in.
 3. **Apply**. First build takes ~5 minutes (`npm ci` plus the Vite build).
+
+The blueprint sets `LLM_PROVIDER=offline`, so the deployed demo costs nothing to run: the
+advisor answers through the offline planner, which calls the same tools and quotes the same
+engine numbers in plainer wording. Every other feature - simulations, goals, what-if, next
+best actions, the monthly review - is deterministic engine code and is identical either way.
+
+**Putting Claude behind it later**
+
+In the Render dashboard, **Environment** -> add secret `ANTHROPIC_API_KEY` (a key from
+<https://console.anthropic.com>, prepaid credits, roughly $0.15 an advisor question and
+$1 a monthly review on Opus) and change `LLM_PROVIDER` to `anthropic`. Render restarts the
+service; no rebuild, no code change. Add `KOSH_MODEL=claude-sonnet-5` alongside it to cut
+that bill by about 60%. Never put the key in git - `/api/health` will report
+`"provider":"anthropic"` once it is live.
 
 Every push to `main` redeploys (`autoDeployTrigger: commit`).
 
@@ -47,7 +58,7 @@ Every push to `main` redeploys (`autoDeployTrigger: commit`).
 
 ```bash
 curl -fsS https://kosh.onrender.com/api/health
-# {"ok":true,"llm":{"provider":"anthropic","model":"claude-opus-5"},"store":"memory",...}
+# {"ok":true,"llm":{"provider":"offline","model":null},"store":"memory",...}
 ```
 
 `"store":"memory"` is expected: there is no DynamoDB here, so custom profiles live in the
@@ -78,8 +89,10 @@ bash scripts/deploy-hf.sh <user>/<space>
 ```
 
 Create the Space as SDK **Docker**, hardware **CPU basic**, storage **None**, Dev Mode off.
-Set `ANTHROPIC_API_KEY` as a Space secret and `LLM_PROVIDER=anthropic` as a variable.
-`app_port: 8787` in the Space header must match the container's `PORT`.
+Set `LLM_PROVIDER=offline` as a variable to match Render, or `anthropic` plus an
+`ANTHROPIC_API_KEY` secret. `app_port: 8787` in the Space header must match the container's
+`PORT`. Note that the Space creation form gates some accounts behind a paid plan even for
+free CPU hardware.
 
 ## 4. AWS (the architecture this was designed for)
 

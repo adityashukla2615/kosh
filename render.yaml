@@ -2,8 +2,8 @@
 # Express serves the API and the built React app on a single origin, so there is no
 # separate static site and no CORS to configure.
 #
-# Connect this repo at https://render.com/ -> New -> Blueprint. Render reads this file,
-# builds the root Dockerfile and asks for the one secret marked `sync: false`.
+# Connect this repo at https://render.com/ -> New -> Blueprint. Render reads this file
+# and builds the root Dockerfile. Nothing to fill in - the demo runs keyless.
 services:
   - type: web
     name: kosh
@@ -15,12 +15,12 @@ services:
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
-      # Claude API rather than Bedrock. Paste the key into the Render dashboard when
-      # prompted - `sync: false` keeps it out of this file and out of git.
-      - key: ANTHROPIC_API_KEY
-        sync: false
+      # Offline planner: the advisor uses the same tools and the same engine numbers,
+      # in plainer wording, with no model calls and no API bill. To put Claude behind it
+      # later, add ANTHROPIC_API_KEY as a secret in the Render dashboard and flip this
+      # to `anthropic` - no redeploy of the image needed, Render restarts the service.
       - key: LLM_PROVIDER
-        value: anthropic
+        value: offline
       - key: PORT
         value: 8787
       # TABLE_NAME deliberately unset -> the store falls back to memory.
