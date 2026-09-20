@@ -61,11 +61,11 @@
 <section class="slide">
   <div class="kicker">BroadBridge Hackathon · AI Wealth Navigator</div>
   <h1>Kosh</h1>
-  <p class="muted" style="font-size:1.3em;margin-top:.3em">Your money, explained back to you - with the working shown.</p>
+  <p class="muted" style="font-size:1.3em;margin-top:.3em">Simulates the whole plan. Keeps the working.</p>
   <div style="margin-top:auto" class="grid g3">
-    <div class="card"><b>Simulates</b><p>hundreds of futures for every goal, every what-if</p></div>
-    <div class="card"><b>Recommends</b><p>only moves it has tested against your plan</p></div>
-    <div class="card"><b>Explains</b><p>every number traced, every assumption editable</p></div>
+    <div class="card"><b>The household</b><p>where they stand, what if, what to do next - with the reason behind every number</p></div>
+    <div class="card"><b>The adviser</b><p>which of 214 households needs a call this week, ranked, with the evidence</p></div>
+    <div class="card"><b>The reviewer</b><p>what was advised, what else was considered, why it lost - two years later</p></div>
   </div>
   <div class="foot"><span>Team Br_Tesla</span><span>1</span></div>
 </section>
@@ -73,7 +73,7 @@
 <!-- 2 -->
 <section class="slide">
   <div class="kicker">The problem</div>
-  <h2>People can see their balance.<br/>They can't see their future.</h2>
+  <h2>Advice is easy to give.<br/>It is hard to evidence.</h2>
   <div class="grid g2" style="margin-top:.5em">
     <div>
       <ul>
@@ -149,7 +149,51 @@
 
 <!-- 6 -->
 <section class="slide">
-  <div class="kicker">Innovation 2 · An agent that can't make numbers up</div>
+  <div class="kicker">Innovation 2 · Surveillance across a whole book</div>
+  <h2>An adviser does not have one household</h2>
+  <div class="grid g2">
+    <div>
+      <p>214 households. The same engine over every one — <b>171,200 market paths</b>, precomputed at build, served in 39ms.</p>
+      <table style="margin-top:.8em">
+        <tr><th>Decision</th><th>Why</th></tr>
+        <tr><td><b>Base rates are not alerts</b></td><td>92% of this book is underfunded for retirement. Raising that 196 times buries the 11 with something fixable this week.</td></tr>
+        <tr><td><b>The queue has a capacity</b></td><td>An adviser can have ~12 real conversations a week. So the system picks 12 — and publishes the cutoff.</td></tr>
+        <tr><td><b>Every flag carries its numbers</b></td><td>"Protection gap" is an opinion. "1 dependent, no term cover, ₹2.03 Cr of need" is a meeting.</td></tr>
+      </table>
+    </div>
+    <div class="card" style="font-size:.85em">
+      <b>This week — top of the queue</b>
+      <p class="mono" style="font-size:.85em;line-height:1.7">1 · Gaurav &amp; Radhika Shetty · ₹24.5 L<br/>
+      &nbsp;&nbsp;Protection gap — no term cover, ₹2.03 Cr need<br/>
+      &nbsp;&nbsp;Near-term goal — "Meera's education" at 0%, due 2030<br/>
+      &nbsp;&nbsp;Off mandate — aggressive profile, 18% equity</p>
+      <b style="margin-top:.9em">Alert fatigue is how these systems die</b>
+      <p>A queue where everything is red is worse than no queue at all.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Kosh</span><span>6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Innovation 3 · Evidence as a by-product</div>
+  <h2>The alternatives were always there. We stopped throwing them away.</h2>
+  <div class="grid g2">
+    <div>
+      <p>Ranking a recommendation <b>means</b> simulating every alternative against that household. At the moment of ranking, the engine is holding exactly what a reviewer will ask for in two years.</p>
+      <p style="margin-top:.7em">So the suitability record is a by-product: what was advised, what else was simulated, what each was projected to do, why it lost, every assumption relied on — and a SHA-256 digest, so alteration is detectable.</p>
+      <p style="margin-top:.7em" class="muted">It generates evidence. It does not certify compliance, and it says so.</p>
+    </div>
+    <div>
+      <div class="card"><b>SEBI (IA) Regulations 2013, reg. 17</b><p>Reasonable basis for advice, and a record of that basis.</p></div>
+      <div class="card" style="margin-top:.6em"><b>SEC Reg BI — Care Obligation</b><p>Reasonably available alternatives considered.</p></div>
+      <div class="card" style="margin-top:.6em"><b>Why that clause is expensive</b><p>Firms struggle to evidence it because nobody writes the alternatives down. Here it falls out of how ranking works.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Kosh</span><span>7</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Innovation 4 · An agent that can't make numbers up</div>
   <h2>Claude plans and explains. The engine does the maths.</h2>
   <div class="grid g2">
     <div>
@@ -170,7 +214,7 @@
       <span style="color:#1f5c4a">✓ all 9 figures traced to calculations</span>
     </div>
   </div>
-  <div class="foot"><span>Kosh</span><span>6</span></div>
+  <div class="foot"><span>Kosh</span><span>8</span></div>
 </section>
 
 <!-- 7 -->
@@ -188,7 +232,7 @@
     <div class="card"><b>Fact checker</b>verify or fall back</div>
   </div>
   <p style="margin-top:1.4em">Proactive, not reactive: the review finds the problem before the user asks. Deterministic where it must be right, generative only where it must be human.</p>
-  <div class="foot"><span>Kosh</span><span>7</span></div>
+  <div class="foot"><span>Kosh</span><span>9</span></div>
 </section>
 
 <!-- 8 -->
@@ -201,7 +245,7 @@
     <div class="card"><b>Honest odds</b><p>We plan for ~80% odds, not the average (which is a coin flip). Goals keep their real asset mix - FDs stay FDs.</p></div>
   </div>
   <p class="muted" style="margin-top:1.2em;font-size:.8em">Categories, never products. Not a SEBI-registered adviser, and says so once - not on every line.</p>
-  <div class="foot"><span>Kosh</span><span>8</span></div>
+  <div class="foot"><span>Kosh</span><span>10</span></div>
 </section>
 
 <!-- 9 -->
@@ -229,7 +273,7 @@
       container; the table is the production target, linted in CI.</p>
     </div>
   </div>
-  <div class="foot"><span>Kosh</span><span>9</span></div>
+  <div class="foot"><span>Kosh</span><span>11</span></div>
 </section>
 
 <!-- 10 -->
@@ -246,7 +290,7 @@
     <li>Property tests: investing more never lowers odds; a crash never raises them; solver's answer actually reaches the target.</li>
     <li>Seeded Monte Carlo with common random numbers → deterministic, comparable, testable.</li>
   </ul>
-  <div class="foot"><span>Kosh</span><span>10</span></div>
+  <div class="foot"><span>Kosh</span><span>12</span></div>
 </section>
 
 <!-- 11 -->
@@ -271,7 +315,7 @@
       </ul>
     </div>
   </div>
-  <div class="foot"><span>Kosh</span><span>11</span></div>
+  <div class="foot"><span>Kosh</span><span>13</span></div>
 </section>
 
 <!-- 12 -->
@@ -279,7 +323,7 @@
   <div class="kicker">Thank you</div>
   <h1 style="font-size:2.6em">Kosh doesn't tell people what to buy.<br/>It shows them what their choices do.</h1>
   <p class="muted" style="margin-top:1.2em"><a href="https://kosh-2w6y.onrender.com" style="color:inherit">kosh-2w6y.onrender.com</a><br/>Repo · architecture doc · deployment guide - all in the submission.</p>
-  <div class="foot"><span>Kosh</span><span>12</span></div>
+  <div class="foot"><span>Kosh</span><span>14</span></div>
 </section>
 
 </div>
